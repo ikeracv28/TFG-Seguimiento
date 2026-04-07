@@ -1,0 +1,54 @@
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Flutter / Dart
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+frontend/build/
+frontend/.dart_tool/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse
+.settings/
+.classpath
+.project
+.factorypath
+
+# VS Code
+.vscode/
+
+# Herramientas de Agentes (IA) e Identificadores de Contexto
+.agents/
+GEMINI.md
+skills-lock.json
+.gemini/
+.gemini_security/
+.mcp/
+
+# Sistema Operativo
+Thumbs.db
+.DS_Store
+
+# Variables de entorno y Secretos (Cualquier carpeta)
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
+**/*.keystore
+**/*.jks
+**/google-services.json
+**/FirebaseServiceAccountKey.json

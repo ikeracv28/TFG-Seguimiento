@@ -1,0 +1,97 @@
+version: "3.8"
+
+# =========================================================================
+# ORQUESTACIÓN DE CONTENEDORES (DOCKER COMPOSE)
+# =========================================================================
+# Este archivo define la topología de la aplicación: una Base de Datos,
+# un Backend (API) y un Frontend (Web). Utiliza redes personalizadas
+# para el aislamiento y comunicación interna.
+# =========================================================================
+
+services:
+  # -------------------------------------------------------------------------
+  # 1. SERVICIO DE BASE DE DATOS (PostgreSQL)
+  # -------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: tfg-postgres-db
+    # Asegura que el contenedor vuelva a arrancar si falla o se reinicia la máquina
+    restart: unless-stopped
+    ports:
+      - "5432:5432" # Expone el puerto 5432 hacia la máquina anfitriona (host)
+    environment:
+      # Las variables se leen del archivo .env que esté en el mismo directorio
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      # Volumen nombrado para que los datos persistan aunque se borre el contenedor
+      - postgres-data:/var/lib/postgresql/data
+      # Montaje tipo "bind" para auto-ejecutar el script SQL al crear la BD por primera vez
+      - ../BBDD-TFG.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tfg-network
+    # Comprueba regularmente si la base de datos está lista para aceptar conexiones
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # 2. SERVICIO BACKEND (Spring Boot API - Hot Reload)
+  # -------------------------------------------------------------------------
+  backend:
+    image: maven:3.9-eclipse-temurin-21
+    container_name: tfg-springboot-api
+    working_dir: /app
+    ports:
+      - "8080:8080" # Expone la API al exterior
+    volumes:
+      - ../backend:/app
+      - ~/.m2:/root/.m2
+    command: mvn spring-boot:run
+    environment:
+      # Pasamos las variables de entorno necesarias para la conexión y seguridad
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${DB_NAME}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - tfg-network
+    # Le decimos a Docker que NO inicie el backend hasta que el 'healthcheck' de 'db' sea exitoso
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # -------------------------------------------------------------------------
+  # 3. SERVICIO FRONTEND (Flutter Web - Hot Reload)
+  # -------------------------------------------------------------------------
+  frontend:
+    image: ghcr.io/cirruslabs/flutter:stable
+    container_name: tfg-flutter-web
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../frontend:/app
+    command: flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000
+    networks:
+      - tfg-network
+    # Nos aseguramos de que el backend inicie antes que el frontend
+    depends_on:
+      - backend
+
+# -------------------------------------------------------------------------
+# DEFINICIÓN DE REDES AISLADAS
+# -------------------------------------------------------------------------
+networks:
+  tfg-network:
+    driver: bridge # Crea una red virtual donde los servicios se comunican por su nombre (ej: 'db')
+
+# -------------------------------------------------------------------------
+# DEFINICIÓN DE VOLÚMENES PERSISTENTES
+# -------------------------------------------------------------------------
+volumes:
+  postgres-data:
+    driver: local # Administrado por Docker localmente
