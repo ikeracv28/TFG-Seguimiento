@@ -32,7 +32,9 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('DEBUG: Error en login: $e');
+      debugPrint('DEBUG: StackTrace: $stack');
       _user = null;
       _errorMessage = e.toString();
       _isLoading = false;

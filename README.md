@@ -112,7 +112,7 @@ Esta separación refleja el proceso real de las FCT: el tutor de empresa valida 
 ## Estructura del proyecto
 
 ```
-Nexus-TFG/
+TFG-Seguimiento/
 ├── backend/
 │   └── tfg-nexus-api/
 │       ├── src/main/java/com/tfg/api/
@@ -137,7 +137,8 @@ Nexus-TFG/
 │           ├── providers/            # AuthProvider, PracticaProvider
 │           └── screens/              # LoginScreen, DashboardScreen
 ├── docker-compose.yml
-├── .env                              # Variables de entorno (no commitear)
+├── .env.example  # plantilla de variables de entorno (sí se commitea)
+├──.env          # local (NO commitear)
 ├── CLAUDE.md                         # Contexto para Claude Code
 └── DESIGN_SYSTEM.md                  # Sistema de diseño Nexus
 ```
@@ -152,14 +153,14 @@ Nexus-TFG/
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/ikeracv28/Nexus-TFG.git
-cd Nexus-TFG
+git clone https://github.com/ikeracv28/TFG-Seguimiento.git
+cd TFG-Seguimiento
 ```
 
 ### 2. Configurar variables de entorno
 ```bash
 cp .env.example .env
-# Edita .env con tus valores (o usa los valores de desarrollo por defecto)
+# Edita .env con tus valores
 ```
 
 ### 3. Levantar todo con Docker
@@ -181,9 +182,9 @@ http://localhost:3000
 
 | Rol | Email | Contraseña |
 |-----|-------|-----------|
-| Administrador | admin@nexus.com | password |
-| Tutor Centro | tutor@nexus.com | password |
-| Alumno | alumno@nexus.com | password |
+| Administrador | admin@nexus.edu | admin123 |
+| Tutor Centro | tutor@nexus.edu | 123456 |
+| Alumno | alumno@nexus.edu | 123456 |
 
 ---
 
@@ -305,9 +306,6 @@ Estilo visual: Notion/Linear. Sin Material azul genérico, inputs con borde fino
 
 ## Repositorios
 
-| Repositorio | Descripción |
-|-------------|-------------|
-| [Nexus-TFG](https://github.com/ikeracv28/Nexus-TFG) | Repositorio de desarrollo (este) |
 | [TFG-Seguimiento](https://github.com/ikeracv28/TFG-Seguimiento) | Repositorio limpio para entrega al profesor |
 
 ---

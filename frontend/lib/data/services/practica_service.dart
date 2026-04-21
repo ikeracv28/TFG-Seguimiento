@@ -21,9 +21,19 @@ class PracticaService {
       }
       return null;
     } on DioException catch (e) {
-      // 404 significa que el alumno no tiene práctica activa aún — no es un error crítico
       if (e.response?.statusCode == 404) return null;
-      throw Exception('Error al obtener la práctica activa: ${e.message}');
+      
+      String errorMessage = 'Error al obtener la práctica activa';
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('message')) {
+          errorMessage = data['message'];
+        }
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'No se puede conectar con el servidor';
+      }
+      
+      throw Exception(errorMessage);
     }
   }
 

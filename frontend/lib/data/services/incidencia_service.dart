@@ -21,7 +21,14 @@ class IncidenciaService {
       }
       return [];
     } on DioException catch (e) {
-      throw Exception('Error al obtener incidencias: ${e.message}');
+      String errorMessage = 'Error al obtener incidencias';
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('message')) {
+          errorMessage = data['message'];
+        }
+      }
+      throw Exception(errorMessage);
     }
   }
 

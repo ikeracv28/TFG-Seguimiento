@@ -21,7 +21,14 @@ class SeguimientoService {
       }
       return [];
     } on DioException catch (e) {
-      throw Exception('Error al obtener seguimientos: ${e.message}');
+      String errorMessage = 'Error al obtener seguimientos';
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('message')) {
+          errorMessage = data['message'];
+        }
+      }
+      throw Exception(errorMessage);
     }
   }
 

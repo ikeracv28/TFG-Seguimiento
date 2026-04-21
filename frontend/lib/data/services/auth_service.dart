@@ -27,9 +27,24 @@ class AuthService {
       
       return authResponse;
     } on DioException catch (e) {
-      // Lanzamos una excepción con el mensaje que venga del backend
-      final message = e.response?.data['message'] ?? 'Error al iniciar sesión';
-      throw Exception(message);
+      // Manejo de error más robusto
+      String errorMessage = 'Error al iniciar sesión';
+      
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('message')) {
+          errorMessage = data['message'];
+        } else if (data is String && data.isNotEmpty) {
+          errorMessage = data;
+        }
+      } else if (e.type == DioExceptionType.connectionTimeout || 
+                 e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = 'El servidor tarda demasiado en responder';
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'No se puede conectar con el servidor (¿está encendido?)';
+      }
+      
+      throw Exception(errorMessage);
     }
   }
 
