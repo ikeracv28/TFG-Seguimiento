@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Controlador para la administración de usuarios y gestión de perfiles.
+ * Controlador para la gestión de usuarios y perfiles.
  */
 @RestController
 @RequestMapping("/api/v1/usuarios")
@@ -18,7 +18,10 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
-    // Recuperación del perfil del usuario autenticado para la sincronización del estado en el cliente
+    /**
+     * Devuelve el perfil del usuario autenticado actualmente.
+     * Útil para que el cliente Flutter sincronice el estado tras el Login.
+     */
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponse> getMe() {
         return ResponseEntity.ok(usuarioService.getMe());

@@ -3,12 +3,12 @@ package com.tfg.api.services;
 import com.tfg.api.models.dto.UsuarioResponse;
 
 /**
- * Interfaz que establece los métodos para la gestión de la información relativa a los usuarios.
+ * Servicio para la gestión de datos de usuario.
  */
 public interface UsuarioService {
     
     /**
-     * Recupera la información del perfil del usuario que ha iniciado sesión actualmente.
+     * Obtiene el perfil del usuario actualmente autenticado.
      */
     UsuarioResponse getMe();
 }

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Controlador para la gestión de la información relativa a las empresas colaboradoras.
+ * Controlador para la gestión de empresas colaboradoras.
  */
 @RestController
 @RequestMapping("/api/v1/empresas")
@@ -19,7 +19,9 @@ public class EmpresaController {
 
     private final EmpresaService empresaService;
 
-    // Obtención de todas las entidades empresa registradas en la base de datos
+    /**
+     * Devuelve el listado de todas las empresas registradas.
+     */
     @GetMapping
     public ResponseEntity<List<EmpresaResponse>> getAll() {
         return ResponseEntity.ok(empresaService.findAll());

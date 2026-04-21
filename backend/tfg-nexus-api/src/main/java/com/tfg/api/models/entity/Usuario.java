@@ -7,11 +7,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Entidad que representa la tabla de usuarios en la BBDD.
+ * Entidad central del sistema: El Usuario.
+ * Gestiona tanto a Alumnos, Tutores (Centro/Empresa) y Administradores.
  */
 @Entity
 @Table(name = "usuarios")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -22,7 +25,7 @@ public class Usuario {
     private Long id;
 
     /**
-     * Documento de identidad (DNI/NIE) del usuario.
+     * DNI/NIE: Obligatorio y único para identificación formal en España.
      */
     @Column(unique = true, nullable = false, length = 20)
     private String dni;
@@ -34,26 +37,29 @@ public class Usuario {
     private String apellidos;
 
     /**
-     * Email del usuario utilizado para el login.
+     * Email: Único. Se usará habitualmente como 'username' para el Login con JWT.
      */
     @Column(unique = true, nullable = false, length = 100)
     private String email;
 
     /**
-     * Hash de la contraseña del usuario.
+     * Almacenamiento del Hash de la contraseña.
+     * Nunca debemos almacenar contraseñas en texto plano.
      */
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
     /**
-     * Relación con el centro educativo al que pertenece el usuario.
+     * Relación con el centro educativo.
+     * @ManyToOne: Varios usuarios pueden pertenecer a un mismo centro.
+     * @JoinColumn: Especifica la clave foránea en la tabla usuarios.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "centro_id")
     private Centro centro;
 
     /**
-     * Estado de activación de la cuenta de usuario.
+     * Estado de la cuenta: Permite deshabilitar el acceso sin borrar los datos.
      */
     @Column(nullable = false)
     @Builder.Default
@@ -63,7 +69,12 @@ public class Usuario {
     private LocalDateTime fechaCreacion;
 
     /**
-     * Relación N:M con la tabla de roles.
+     * Relación Many-to-Many con Roles.
+     * Un usuario puede tener varios roles (ej: Tutor de Centro y Administrador).
+     * 
+     * @JoinTable: Define la tabla intermedia 'usuario_roles' de forma declarativa.
+     * fetch = FetchType.EAGER: Al loguear al usuario, necesitamos sus roles al instante 
+     * para la seguridad.
      */
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

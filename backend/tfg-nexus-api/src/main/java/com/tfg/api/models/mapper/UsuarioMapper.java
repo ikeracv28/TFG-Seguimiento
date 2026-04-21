@@ -13,39 +13,50 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Interface para el mapeo entre la entidad Usuario y sus diferentes DTOs.
+ * Mapper para la conversión entre Usuario (Entidad JPA) y DTOs (Records).
+ * Utiliza MapStruct para generar el código de mapeo de forma eficiente 
+ * durante la compilación.
+ * 
+ * componentModel = "spring": Permite que Spring inyecte el Mapper 
+ * como un Bean estándar (@Autowired).
  */
 @Mapper(componentModel = "spring")
 public interface UsuarioMapper {
 
     /**
-     * Mapea el DTO de registro a la entidad Usuario para persistencia.
+     * Convierte los datos de registro en una Entidad de base de datos.
+     * Ignoramos el ID (autogenerado) y la fechaCreación.
+     * CRÍTICO: No mapeamos la password en claro al passwordHash directamente 
+     * para evitar errores de seguridad. El hash se genera en el Service.
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "passwordHash", source = "password") // Mapeamos password de DTO a passwordHash de Entity
-    @Mapping(target = "centro", ignore = true) // El centro se asignará en el Service
-    @Mapping(target = "roles", ignore = true)  // Los roles se asignarán en el Service
+    @Mapping(target = "passwordHash", ignore = true)
+    @Mapping(target = "centro", ignore = true)
+    @Mapping(target = "roles", ignore = true)
     @Mapping(target = "activo", constant = "true")
     @Mapping(target = "fechaCreacion", ignore = true)
     Usuario registerToEntity(RegisterRequest request);
 
     /**
-     * Mapea el usuario autenticado y su token al DTO de respuesta de autenticación.
+     * Convierte un usuario de la BD en una respuesta de autenticación con el Token.
      */
+    @Mapping(target = "id", source = "usuario.id")
     @Mapping(target = "token", source = "token")
     @Mapping(target = "nombre", expression = "java(usuario.getNombre() + \" \" + usuario.getApellidos())")
     @Mapping(target = "roles", source = "usuario.roles", qualifiedByName = "mapRoles")
     AuthResponse toAuthResponse(Usuario usuario, String token);
 
     /**
-     * Mapea la entidad Usuario al DTO de respuesta de perfil.
+     * Convierte un usuario en un perfil público (UsuarioResponse).
+     * Se utiliza una expresión para evitar NPE si el usuario no tiene centro asignado.
      */
-    @Mapping(target = "centroNombre", source = "usuario.centro.nombre")
+    @Mapping(target = "centroNombre", expression = "java(usuario.getCentro() != null ? usuario.getCentro().getNombre() : \"Sin Centro\")")
     @Mapping(target = "roles", source = "usuario.roles", qualifiedByName = "mapRoles")
     UsuarioResponse toResponse(Usuario usuario);
 
     /**
-     * Convierte el Set de objetos Rol en un Set de Strings con sus nombres.
+     * Método auxiliar para extraer solo los nombres de los roles 
+     * y devolver un Set<String> más ligero para el JSON.
      */
     @Named("mapRoles")
     default Set<String> mapRoles(Set<Rol> roles) {

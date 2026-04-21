@@ -1,5 +1,7 @@
 package com.tfg.api.services.impl;
 
+import com.tfg.api.exceptions.BusinessRuleException;
+import com.tfg.api.exceptions.ResourceNotFoundException;
 import com.tfg.api.models.dto.AuthResponse;
 import com.tfg.api.models.dto.LoginRequest;
 import com.tfg.api.models.dto.RegisterRequest;
@@ -22,8 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 
 /**
- * Implementación de los servicios de autenticación y seguridad de la aplicación.
- * Esta clase gestiona el registro de usuarios, la validación de credenciales y la emisión de tokens JWT.
+ * Implementación de la lógica de autenticación real para Nexus-TFG.
  */
 @Service
 @RequiredArgsConstructor
@@ -37,53 +38,65 @@ public class AuthServiceImpl implements AuthService {
     private final UsuarioMapper usuarioMapper;
     private final UserDetailsServiceImpl userDetailsService;
 
+    /**
+     * Registra al usuario y devuelve automáticamente el Token para el Login inmediato.
+     */
     @Override
     @Transactional
     public AuthResponse registrar(RegisterRequest request) {
+
+        // Validaciones de integridad (DNI y Email únicos)
         validarUnicidad(request);
 
+        // Uso del Mapper para convertir DTO a Entidad
         Usuario usuario = usuarioMapper.registerToEntity(request);
+        
+        // Encriptación de contraseña (Lógica centralizada aquí por seguridad)
         usuario.setPasswordHash(passwordEncoder.encode(request.password()));
 
-        // Asignación por defecto del rol "ALUMNO" para los nuevos registros.
+        // Asignación de rol base
         Rol rolAlumno = rolRepository.findByNombre("ROLE_ALUMNO")
-                .orElseThrow(() -> new RuntimeException("Rol ROLE_ALUMNO no encontrado"));
+                .orElseThrow(() -> new BusinessRuleException("Error: El rol de Alumno no está configurado en el sistema"));
         
         usuario.setRoles(Collections.singleton(rolAlumno));
         usuario.setActivo(true);
 
+        // Persistencia
         Usuario usuarioGuardado = usuarioRepository.save(usuario);
 
+        // CARGA DE USERDETAILS PARA JWT (Corrección de tipo)
         UserDetails userDetails = userDetailsService.loadUserByUsername(usuarioGuardado.getEmail());
         String token = jwtUtils.generateToken(userDetails);
 
         return usuarioMapper.toAuthResponse(usuarioGuardado, token);
     }
 
+    /**
+     * Proceso de Login oficial.
+     */
     @Override
     public AuthResponse login(LoginRequest request) {
+        
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
 
         Usuario usuario = usuarioRepository.findByEmail(request.email())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el email: " + request.email()));
 
+        // CARGA DE USERDETAILS PARA JWT (Corrección de tipo)
         UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getEmail());
         String token = jwtUtils.generateToken(userDetails);
         
         return usuarioMapper.toAuthResponse(usuario, token);
     }
 
-    /**
-     * Verifica que el email y el DNI proporcionados no existan previamente en el sistema.
-     */
     private void validarUnicidad(RegisterRequest request) {
         if (usuarioRepository.existsByEmail(request.email())) {
-            throw new RuntimeException("El email ya está registrado");
+            throw new BusinessRuleException("El correo electrónico ya se encuentra registrado en Nexus");
         }
         if (usuarioRepository.existsByDni(request.dni())) {
-            throw new RuntimeException("El DNI ya existe");
+            throw new BusinessRuleException("El DNI introducido ya existe en nuestro sistema");
         }
     }
 }

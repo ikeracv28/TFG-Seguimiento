@@ -11,24 +11,30 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Controlador encargado de gestionar los procesos de autenticación del sistema.
- * Implementa las funcionalidades de registro y acceso de usuarios.
+ * Controlador de Autenticación para Nexus-TFG.
+ * Proporciona acceso seguro tanto para clientes Web como Móviles.
  */
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // Habilitación de CORS para facilitar la comunicación con el cliente web
+@CrossOrigin(origins = "*") 
 public class AuthController {
 
     private final AuthService authService;
 
-    // Registro de nuevos usuarios en la plataforma y obtención del token inicial
+    /**
+     * Endpoint para registrar un nuevo usuario.
+     * Devuelve automáticamente el token JWT tras el registro exitoso.
+     */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> registrar(@Valid @RequestBody RegisterRequest request) {
         return new ResponseEntity<>(authService.registrar(request), HttpStatus.CREATED);
     }
 
-    // Punto de acceso para validación de credenciales y generación del token JWT
+    /**
+     * Endpoint de inicio de sesión oficial.
+     * Valida credenciales y devuelve el token JWT + información del perfil.
+     */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));

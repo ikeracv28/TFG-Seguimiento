@@ -9,10 +9,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Implementación de los servicios de gestión de centros educativos.
- * Realiza la comunicación con el repositorio de centros y el mapeo a DTOs de respuesta.
- */
 @Service
 @RequiredArgsConstructor
 public class CentroServiceImpl implements CentroService {

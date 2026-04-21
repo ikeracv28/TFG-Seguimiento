@@ -6,11 +6,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Entidad que representa la tabla de seguimientos diarios en la BBDD.
+ * Entidad que representa el diario o parte semanal de seguimiento de un alumno.
  */
 @Entity
 @Table(name = "seguimientos")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -21,46 +23,46 @@ public class Seguimiento {
     private Long id;
 
     /**
-     * Relación con la práctica a la que pertenece el seguimiento.
+     * La práctica a la que pertenece este seguimiento.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "practica_id", nullable = false)
     private Practica practica;
 
     /**
-     * Fecha del registro de la actividad diaria.
+     * Fecha a la que corresponde el registro de actividades.
      */
     @Column(name = "fecha_registro", nullable = false)
     private LocalDate fechaRegistro;
 
     /**
-     * Número de horas realizadas en la jornada.
+     * Cantidad de horas realizadas en esa fecha específica.
      */
     @Column(name = "horas_realizadas", nullable = false)
     private Integer horasRealizadas;
 
     /**
-     * Descripción de las tareas llevadas a cabo por el alumno.
+     * Descripción detallada de las tareas llevadas a cabo.
      */
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
     /**
-     * Estado de validación del seguimiento.
+     * Estado del seguimiento: PENDIENTE, VALIDADO, RECHAZADO.
      */
     @Column(length = 20)
     @Builder.Default
     private String estado = "PENDIENTE";
 
     /**
-     * Relación con el tutor que valida el registro.
+     * Usuario (Tutor) que valida este registro específico.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "validado_por")
     private Usuario validadoPor;
 
     /**
-     * Comentarios de feedback proporcionados por el tutor.
+     * Feedback opcional del tutor tras la validación o rechazo.
      */
     @Column(name = "comentario_tutor", columnDefinition = "TEXT")
     private String comentarioTutor;

@@ -2,16 +2,19 @@ package com.tfg.api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 /**
- * Clase principal de entrada para la aplicación Spring Boot. 
- * Configura el arranque automático, el escaneo de componentes y la configuración del framework.
+ * Clase principal que arranca la aplicación Spring Boot.
+ * La anotación @SpringBootApplication habilita la auto-configuración, 
+ * el escaneo de componentes y la configuración de clases.
  */
 @SpringBootApplication
+@EnableMethodSecurity
 public class TfgApiApplication {
 
     public static void main(String[] args) {
-        // Ejecución de la aplicación y arranque del servidor embebido.
+        // Método estándar para iniciar la aplicación.
         SpringApplication.run(TfgApiApplication.class, args);
     }
 }

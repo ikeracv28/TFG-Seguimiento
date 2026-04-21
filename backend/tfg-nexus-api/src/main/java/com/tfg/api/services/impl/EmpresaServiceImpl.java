@@ -9,9 +9,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Implementación de los servicios relacionados con la gestión de empresas colaboradoras.
- */
 @Service
 @RequiredArgsConstructor
 public class EmpresaServiceImpl implements EmpresaService {
@@ -19,9 +16,6 @@ public class EmpresaServiceImpl implements EmpresaService {
     private final EmpresaRepository empresaRepository;
     private final EmpresaMapper empresaMapper;
 
-    /**
-     * Recupera y transforma todas las empresas registradas para su uso en la capa de presentación.
-     */
     @Override
     public List<EmpresaResponse> findAll() {
         return empresaRepository.findAll().stream()

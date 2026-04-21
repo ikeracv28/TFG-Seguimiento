@@ -8,6 +8,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,15 +19,19 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
- * Clase de configuración de seguridad principal para el proyecto TFG-Nexus.
- * En esta clase se define la política de seguridad global de la API, configurando
- * aspectos como la autenticación basada en JWT, la protección de rutas y la gestión de sesiones.
- * Se utiliza la anotación @EnableWebSecurity para habilitar las funcionalidades de Spring Security.
+ * Configuración maestra de seguridad para Nexus-TFG.
+ * Aquí se coordinan el cifrado, la gestión de usuarios y el filtro JWT.
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // Permite el uso de @PreAuthorize en los controladores
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -33,41 +39,61 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
 
     /**
-     * Define el filtro de seguridad (SecurityFilterChain) que intercepta todas las peticiones HTTP.
-     * Aquí se establecen los permisos de acceso a los diferentes endpoints de la aplicación.
+     * Definición de la cadena de filtros de seguridad.
+     * Es el corazón de la protección de la API.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Deshabilitamos CSRF (Cross-Site Request Forgery) ya que estamos desarrollando una API 
-            // REST sin estado que no utiliza cookies de sesión, por lo que este tipo de ataque no es una amenaza directa.
-            .csrf(AbstractHttpConfigurer::disable) 
+            // 1. Configuración de CORS global.
+            .cors(Customizer.withDefaults())
+            
+            // 2. Deshabilitamos CSRF (Cross-Site Request Forgery). 
+            // Como usamos JWT y no sesiones de navegador (cookies), no es necesario.
+            .csrf(AbstractHttpConfigurer::disable)
+            
+            // 3. Configuración de rutas (Endpoints)
             .authorizeHttpRequests(auth -> auth
-                // Permitimos el acceso libre a los endpoints de autenticación (login y registro)
-                // para que cualquier usuario pueda identificarse o darse de alta en el sistema.
-                .requestMatchers("/api/v1/auth/**").permitAll() 
-                // Para el resto de rutas de la API, se requiere que el usuario esté debidamente autenticado.
+                // Rutas públicas: Registro y Login deben ser accesibles para todos.
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                // El resto de rutas requieren estar autenticado.
                 .anyRequest().authenticated()
             )
-            // Configuramos la gestión de sesiones como "STATELESS" (sin estado).
-            // Esto es fundamental en el uso de JWT: el servidor no guarda sesiones en memoria,
-            // sino que confía en el token enviado en cada petición.
+            
+            // 4. Gestión de sesiones: Indicamos que la API es STATELESS (Sin estado).
+            // No se crearán sesiones en el servidor.
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            // Inyectamos nuestro proveedor de autenticación personalizado.
+            
+            // 5. Registramos nuestro proveedor de autenticación personalizado.
             .authenticationProvider(authenticationProvider())
-            // Añadimos el filtro JWT antes del filtro estándar de autenticación de Spring,
-            // permitiendo que validemos el token antes de intentar el acceso.
+            
+            // 6. Añadimos el filtro JWT antes del filtro de usuario/contraseña estándar.
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     /**
-     * Configura el proveedor de autenticación. Se utiliza DaoAuthenticationProvider
-     * para conectar Spring Security con nuestra base de datos a través del UserDetailsService
-     * y el codificador de contraseñas.
+     * Definición de la política CORS global.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // En producción se debería restringir a los dominios oficiales del frontend.
+        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        configuration.setExposedHeaders(List.of("Authorization"));
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    /**
+     * Proveedor de autenticación que conecta el servicio de usuarios con el codificador de contraseñas.
      */
     @Bean
     public AuthenticationProvider authenticationProvider() {
@@ -78,19 +104,14 @@ public class SecurityConfig {
     }
 
     /**
-     * Bean para gestionar la autenticación en otros componentes del sistema.
-     * Es esencial para realizar el proceso de login manual en el controlador.
+     * Gestor de autenticación: Necesario para que el controlador de login 
+     * pueda validar las credenciales de forma oficial.
      */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    /**
-     * Definimos BCryptPasswordEncoder como el algoritmo de hashing para las contraseñas.
-     * Se ha elegido BCrypt por ser un estándar de seguridad que añade un "salt" automático,
-     * protegiendo las credenciales contra ataques de diccionario o tablas arcoíris.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

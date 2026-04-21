@@ -6,11 +6,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Entidad que representa la tabla de prácticas (FCT) en la BBDD.
+ * Entidad central: Representa el convenio de prácticas académicas (FCT).
+ * Relaciona al alumno con sus tutores y la empresa asignada.
  */
 @Entity
 @Table(name = "practicas")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -21,34 +24,34 @@ public class Practica {
     private Long id;
 
     /**
-     * Código identificativo único de la práctica.
+     * Código único asignado a la práctica para identificación rápida.
      */
     @Column(unique = true, nullable = false, length = 50)
     private String codigo;
 
     /**
-     * Relación con el alumno asignado a la práctica.
+     * El alumno asignado a esta práctica.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "alumno_id", nullable = false)
     private Usuario alumno;
 
     /**
-     * Relación con el tutor del centro educativo.
+     * Tutor académico responsable del seguimiento por parte del centro educativo.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tutor_centro_id", nullable = false)
     private Usuario tutorCentro;
 
     /**
-     * Relación con el tutor responsable en la empresa.
+     * Tutor profesional responsable del alumno dentro de la empresa.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tutor_empresa_id", nullable = false)
     private Usuario tutorEmpresa;
 
     /**
-     * Relación con la empresa donde se realizan las prácticas.
+     * La empresa donde se desarrolla la formación.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
@@ -64,7 +67,7 @@ public class Practica {
     private Integer horasTotales;
 
     /**
-     * Estado actual del flujo de la práctica.
+     * Estado actual de la práctica: BORRADOR, ACTIVA, FINALIZADA.
      */
     @Column(length = 20)
     @Builder.Default

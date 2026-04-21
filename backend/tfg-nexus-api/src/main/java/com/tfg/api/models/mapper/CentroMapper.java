@@ -5,7 +5,7 @@ import com.tfg.api.models.entity.Centro;
 import org.mapstruct.Mapper;
 
 /**
- * Interface para mapear la entidad Centro a su DTO de respuesta.
+ * Mapper para la entidad Centro.
  */
 @Mapper(componentModel = "spring")
 public interface CentroMapper {

@@ -1,0 +1,23 @@
+# Ignorar carpetas de compilación y dependencias locales
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Ignorar archivos temporales de otras plataformas (causan errores de enlaces simbólicos)
+android/
+ios/
+linux/
+windows/
+macos/
+
+# Ignorar logs y archivos del IDE
+*.log
+.idea/
+.vscode/
+.history/
+
+# Ignorar el propio Dockerfile y archivos de entorno locales
+Dockerfile
+.env

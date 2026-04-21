@@ -1,54 +1,48 @@
-# Java / Maven
-target/
-*.class
-*.jar
-*.war
-*.ear
-*.log
+# ============================================================
+# .gitignore — Proyecto Nexus TFG (Repositorio de Entrega)
+# ============================================================
 
 # Flutter / Dart
-build/
 .dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
-frontend/build/
-frontend/.dart_tool/
+build/
+android/app/src/main/res/drawable-*/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+lib/generated_plugin_registrant.dart
+pubspec.lock
 
-# IntelliJ IDEA
+# Java / Spring Boot
+*.class
+*.log
+target/
+*.jar
+*.war
+*.zip
+.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
 .idea/
 *.iml
 *.iws
-out/
-
-# Eclipse
-.settings/
-.classpath
-.project
-.factorypath
-
-# VS Code
+*.ipr
 .vscode/
+.code-workspace
+.history/
+.settings/
+.project/
+.classpath/
+.factorypath/
 
-# Herramientas de Agentes (IA) e Identificadores de Contexto
-.agents/
-GEMINI.md
-skills-lock.json
-.gemini/
-.gemini_security/
-.mcp/
-
-# Sistema Operativo
-Thumbs.db
+# Sistema
 .DS_Store
+Thumbs.db
+desktop.ini
 
-# Variables de entorno y Secretos (Cualquier carpeta)
-**/.env
-**/.env.local
-**/.env.production
-**/.env.development
-**/*.keystore
-**/*.jks
-**/google-services.json
-**/FirebaseServiceAccountKey.json
+# Otros
+node_modules/
+*.swp
+*.bak
+*~

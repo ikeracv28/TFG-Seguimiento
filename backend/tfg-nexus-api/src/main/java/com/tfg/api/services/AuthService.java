@@ -5,17 +5,17 @@ import com.tfg.api.models.dto.LoginRequest;
 import com.tfg.api.models.dto.RegisterRequest;
 
 /**
- * Interfaz que define los servicios de autenticación y registro de usuarios en el sistema.
+ * Interfaz de servicio para la gestión de autenticación en Nexus-TFG.
  */
 public interface AuthService {
 
     /**
-     * Procesa el registro de un nuevo usuario y devuelve la respuesta con el token de acceso.
+     * Registra un nuevo usuario y devuelve sus credenciales de acceso (JWT).
      */
     AuthResponse registrar(RegisterRequest request);
 
     /**
-     * Realiza la validación de credenciales y genera el token JWT para el inicio de sesión.
+     * Realiza el login oficial del sistema y genera el Token JWT.
      */
     AuthResponse login(LoginRequest request);
 }

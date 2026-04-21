@@ -5,11 +5,14 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Entidad que representa la tabla de empresas en la BBDD.
+ * Entidad que representa la empresa donde se realizan las prácticas.
+ * Almacena los datos de contacto y la información corporativa básica.
  */
 @Entity
 @Table(name = "empresas")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -20,13 +23,13 @@ public class Empresa {
     private Long id;
 
     /**
-     * Nombre de la empresa colaboradora.
+     * Nombre comercial o razón social.
      */
     @Column(nullable = false, length = 100)
     private String nombre;
 
     /**
-     * Identificador fiscal de la empresa (CIF).
+     * Código de Identificación Fiscal: Obligatorio y único.
      */
     @Column(unique = true, nullable = false, length = 20)
     private String cif;

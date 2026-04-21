@@ -47,7 +47,7 @@ class AuthControllerTest {
     void should_register_user_successfully() throws Exception {
         // Arrange
         RegisterRequest request = new RegisterRequest("12345678A", "Iker", "Acevedo", "iker@test.com", "password123");
-        AuthResponse response = new AuthResponse("mock-jwt-token", "iker@test.com", "Iker Acevedo", Set.of("ROLE_ALUMNO"));
+        AuthResponse response = new AuthResponse(1L, "mock-jwt-token", "iker@test.com", "Iker Acevedo", Set.of("ROLE_ALUMNO"));
 
         when(authService.registrar(any(RegisterRequest.class))).thenReturn(response);
 

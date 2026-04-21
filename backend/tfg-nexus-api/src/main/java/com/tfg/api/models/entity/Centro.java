@@ -5,31 +5,34 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Entidad que representa la tabla de centros educativos en la BBDD.
+ * Entidad que representa un centro educativo (instituto) en el ecosistema Nexus TFG.
+ * Es el nodo que agrupa a alumnos y tutores académicos.
  */
 @Entity
 @Table(name = "centros")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Centro {
 
     /**
-     * Identificador único autoincremental.
+     * Identificador único (BIGINT en PostgreSQL).
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Nombre del centro educativo.
+     * Nombre descriptivo del instituto.
      */
     @Column(nullable = false, length = 100)
     private String nombre;
 
     /**
-     * Dirección física del centro.
+     * Ubicación física del centro.
      */
     @Column(columnDefinition = "TEXT")
     private String direccion;
@@ -41,13 +44,14 @@ public class Centro {
     private String telefono;
 
     /**
-     * Correo electrónico institucional.
+     * Correo institucional.
      */
     @Column(length = 100)
     private String email;
 
     /**
-     * Fecha de registro en el sistema.
+     * Marca de tiempo de cuándo se registró el centro.
+     * @PrePersist: Ejecuta este método justo antes de que se guarde en la BD.
      */
     @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion;

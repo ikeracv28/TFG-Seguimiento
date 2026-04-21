@@ -5,7 +5,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * DTO para la solicitud de registro de nuevos usuarios.
+ * Record que representa la solicitud de registro de un nuevo usuario.
+ * 
+ * Uso de Java 21 Records:
+ * Los Records son ideales para DTOs porque son inmutables por naturaleza, 
+ * ligeros y reducen el código boilerplate (sin necesidad de getters ni constructores).
+ * 
+ * Anotaciones de validación (Bean Validation):
+ * - @NotBlank: Asegura que el campo no esté vacío ni solo con espacios.
+ * - @Email: Valida que el formato del correo sea correcto.
+ * - @Size: Establece límites de longitud (ej: mínimo 8 caracteres para la contraseña).
  */
 public record RegisterRequest(
     

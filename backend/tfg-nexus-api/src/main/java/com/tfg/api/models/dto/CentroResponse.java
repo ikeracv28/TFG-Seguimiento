@@ -1,7 +1,13 @@
 package com.tfg.api.models.dto;
 
 /**
- * DTO para la respuesta con los datos de un centro educativo.
+ * Record para la transferencia de datos de Centros educativos.
+ * 
+ * @param id Identificador único.
+ * @param nombre Nombre del instituto.
+ * @param direccion Ubicación física.
+ * @param telefono Teléfono de contacto.
+ * @param email Correo institucional.
  */
 public record CentroResponse(
     Long id,

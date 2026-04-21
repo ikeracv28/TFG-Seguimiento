@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Controlador para la gestión y consulta de los centros educativos del sistema.
+ * Controlador para la gestión de centros educativos.
  */
 @RestController
 @RequestMapping("/api/v1/centros")
@@ -19,7 +19,9 @@ public class CentroController {
 
     private final CentroService centroService;
 
-    // Recuperación del listado completo de centros educativos disponibles
+    /**
+     * Devuelve el listado de todos los centros registrados.
+     */
     @GetMapping
     public ResponseEntity<List<CentroResponse>> getAll() {
         return ResponseEntity.ok(centroService.findAll());

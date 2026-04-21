@@ -1,3 +1,7 @@
+-- REFERENCIA HISTÓRICA — No usar para aplicar cambios en base de datos.
+-- La única fuente de verdad del esquema es Flyway: backend/tfg-nexus-api/src/main/resources/db/migration/
+-- Este archivo refleja el diseño inicial y puede estar desactualizado respecto a las migraciones activas.
+
 CREATE TABLE "roles" (
   "id" serial PRIMARY KEY,
   "nombre" varchar UNIQUE,

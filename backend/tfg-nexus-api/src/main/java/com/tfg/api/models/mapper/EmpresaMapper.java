@@ -5,7 +5,7 @@ import com.tfg.api.models.entity.Empresa;
 import org.mapstruct.Mapper;
 
 /**
- * Interface para mapear la entidad Empresa a su DTO de respuesta.
+ * Mapper para la entidad Empresa.
  */
 @Mapper(componentModel = "spring")
 public interface EmpresaMapper {

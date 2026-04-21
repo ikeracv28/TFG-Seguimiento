@@ -4,7 +4,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * DTO para la solicitud de inicio de sesión de usuarios.
+ * Representa la solicitud de inicio de sesión.
+ * Utilizado por cualquier cliente (Web, Móvil o Escritorio).
  */
 public record LoginRequest(
     

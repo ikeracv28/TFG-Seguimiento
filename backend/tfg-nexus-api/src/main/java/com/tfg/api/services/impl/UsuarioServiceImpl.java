@@ -11,7 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 /**
- * Implementación de los servicios de consulta y obtención de información del perfil de usuario.
+ * Implementación de UsuarioService.
  */
 @Service
 @RequiredArgsConstructor
@@ -20,9 +20,6 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
 
-    /**
-     * Recupera los datos del usuario actualmente autenticado en el contexto de seguridad.
-     */
     @Override
     public UsuarioResponse getMe() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
