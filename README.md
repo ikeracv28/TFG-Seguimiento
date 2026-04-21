@@ -137,8 +137,8 @@ TFG-Seguimiento/
 │           ├── providers/            # AuthProvider, PracticaProvider
 │           └── screens/              # LoginScreen, DashboardScreen
 ├── docker-compose.yml
-├── .env.example  # plantilla de variables de entorno (sí se commitea)
-├──.env          # local (NO commitear)
+├── .env.example                      # plantilla de variables de entorno (sí se commitea)
+├── .env                              # local (NO commitear)
 ├── CLAUDE.md                         # Contexto para Claude Code
 └── DESIGN_SYSTEM.md                  # Sistema de diseño Nexus
 ```
