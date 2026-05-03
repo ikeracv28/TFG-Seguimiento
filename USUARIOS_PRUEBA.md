@@ -67,4 +67,4 @@ URL local: **http://localhost** (Flutter web vía Nginx)
 - Contraseña de todos los usuarios del Hito 3: `Prueba@Nexus2026`
 - Hashes BCrypt cost=10 almacenados en BD vía migraciones V3, V6 y V7.
 - Para regenerar la BD desde cero: `docker rm -f nexus-db` + `docker-compose up -d` (Flyway aplica V1–V8 automáticamente).
-- Este fichero está en `.gitignore` — no se sube al repositorio.
+- Este fichero está incluido en el repositorio de entrega para que el evaluador pueda probar la plataforma.
