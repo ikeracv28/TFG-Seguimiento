@@ -30,13 +30,13 @@ RUN apt-get update && apt-get install -y \
     libglu1-mesa
 
 # 2. Descargamos el SDK de Flutter desde GitHub y lo colocamos en /usr/local
-RUN git clone https://github.com/flutter/flutter.git /usr/local/flutter
+#    Fijamos la versión estable para builds reproducibles.
+RUN git clone --branch stable --depth 1 https://github.com/flutter/flutter.git /usr/local/flutter
 
 # 3. Añadimos Flutter al PATH para poder usar el comando `flutter`
 ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
 
-# 4. Configuramos Flutter para web y cambiamos a la rama estable
-RUN flutter channel stable
+# 4. Configuramos Flutter para web
 RUN flutter config --enable-web
 
 # 5. Establecemos el directorio de trabajo donde colocaremos nuestro código
@@ -46,14 +46,17 @@ WORKDIR /app
 # Uso: docker compose build --build-arg CACHE_DATE=$(date +%s) frontend
 ARG CACHE_DATE=default
 
+# ARG para la URL base de la API (se inyecta en el bundle web en tiempo de compilación)
+ARG API_URL=http://backend:8080/api/v1
+
 # 6. Copiamos todo el código fuente del frontend al contenedor
 COPY . .
 
 # 7. Descargamos las dependencias del proyecto Flutter (equivalente a npm install)
 RUN flutter pub get
 
-# 8. Compilamos la aplicación para web en modo release (optimizado)
-RUN flutter build web --release
+# 8. Compilamos la aplicación para web en modo release, inyectando la URL de la API
+RUN flutter build web --release --dart-define=API_URL=$API_URL
 
 # -------------------------------------------------------------------------
 # ETAPA 2: RUNTIME (Servidor Web)

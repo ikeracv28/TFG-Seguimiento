@@ -18,6 +18,9 @@ import com.tfg.api.services.SeguimientoService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,6 +72,17 @@ public class SeguimientoServiceImpl implements SeguimientoService {
     @Override
     @Transactional(readOnly = true)
     public List<SeguimientoResponse> listarPorPractica(Long practicaId) {
+        Practica practica = practicaRepository.findById(practicaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Práctica no encontrada"));
+
+        String email = currentUserEmail();
+        boolean isParticipant = practica.getAlumno().getEmail().equals(email)
+                || practica.getTutorCentro().getEmail().equals(email)
+                || practica.getTutorEmpresa().getEmail().equals(email);
+        if (!isParticipant && !currentUserIsAdmin()) {
+            throw new AccessDeniedException("No tienes permiso para ver los seguimientos de esta práctica");
+        }
+
         return seguimientoRepository.findByPracticaIdOrderByFechaRegistroDesc(practicaId)
                 .stream()
                 .map(seguimientoMapper::toResponse)
@@ -81,6 +95,11 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         Seguimiento seguimiento = seguimientoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
 
+        String emailTutor = currentUserEmail();
+        if (!seguimiento.getPractica().getTutorEmpresa().getEmail().equals(emailTutor)) {
+            throw new AccessDeniedException("No eres el tutor de empresa asignado a esta práctica");
+        }
+
         if (!"PENDIENTE_EMPRESA".equals(seguimiento.getEstado())) {
             throw new BusinessRuleException("Este parte ya fue procesado por la empresa");
         }
@@ -91,7 +110,6 @@ public class SeguimientoServiceImpl implements SeguimientoService {
             throw new BusinessRuleException("El motivo es obligatorio al rechazar un parte");
         }
 
-        String emailTutor = currentUserEmail();
         Usuario tutorEmpresa = usuarioRepository.findByEmail(emailTutor)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no identificado"));
 
@@ -118,12 +136,16 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         Seguimiento seguimiento = seguimientoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
 
+        String emailTutor = currentUserEmail();
+        if (!seguimiento.getPractica().getTutorCentro().getEmail().equals(emailTutor)) {
+            throw new AccessDeniedException("No eres el tutor de centro asignado a esta práctica");
+        }
+
         if (!"PENDIENTE_CENTRO".equals(seguimiento.getEstado())) {
             throw new BusinessRuleException(
                     "El parte debe ser validado por la empresa antes de que el centro actúe");
         }
 
-        String emailTutor = currentUserEmail();
         Usuario tutorCentro = usuarioRepository.findByEmail(emailTutor)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no identificado"));
 
@@ -143,6 +165,11 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         Seguimiento seguimiento = seguimientoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
 
+        String emailAlumno = currentUserEmail();
+        if (!seguimiento.getPractica().getAlumno().getEmail().equals(emailAlumno)) {
+            throw new AccessDeniedException("No puedes eliminar un seguimiento que no te pertenece");
+        }
+
         if (!"PENDIENTE_EMPRESA".equals(seguimiento.getEstado())) {
             throw new BusinessRuleException("No se puede eliminar un registro ya procesado");
         }
@@ -153,6 +180,14 @@ public class SeguimientoServiceImpl implements SeguimientoService {
     private String currentUserEmail() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         return (auth != null) ? auth.getName() : "system";
+    }
+
+    private boolean currentUserIsAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
     }
 
     private void crearIncidenciaRechazo(Practica practica, Usuario tutorEmpresa, String motivo) {

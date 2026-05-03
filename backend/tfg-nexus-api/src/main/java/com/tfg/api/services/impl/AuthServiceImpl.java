@@ -8,6 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import com.tfg.api.models.dto.AuthResponse;
 import com.tfg.api.models.dto.LoginRequest;
 import com.tfg.api.models.dto.RegisterRequest;
+import com.tfg.api.models.dto.UsuarioResponse;
 import com.tfg.api.models.entity.Rol;
 import com.tfg.api.models.entity.Usuario;
 import com.tfg.api.models.mapper.UsuarioMapper;
@@ -20,6 +21,7 @@ import com.tfg.api.services.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -112,6 +114,18 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             log.warn("LOGOUT_TOKEN_INVALIDO motivo={}", e.getMessage());
         }
+    }
+
+    /**
+     * Devuelve el perfil completo del usuario autenticado actualmente.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public UsuarioResponse me() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        return usuarioMapper.toResponse(usuario);
     }
 
     private void validarUnicidad(RegisterRequest request) {

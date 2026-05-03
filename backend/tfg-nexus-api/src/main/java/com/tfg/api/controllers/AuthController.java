@@ -3,6 +3,7 @@ package com.tfg.api.controllers;
 import com.tfg.api.models.dto.AuthResponse;
 import com.tfg.api.models.dto.LoginRequest;
 import com.tfg.api.models.dto.RegisterRequest;
+import com.tfg.api.models.dto.UsuarioResponse;
 import com.tfg.api.services.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -50,5 +51,15 @@ public class AuthController {
         String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
         authService.logout(token);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Devuelve el perfil completo del usuario autenticado.
+     * Útil para que el frontend reconstruya el estado de sesión sin relogin.
+     */
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UsuarioResponse> me() {
+        return ResponseEntity.ok(authService.me());
     }
 }
