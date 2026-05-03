@@ -9,23 +9,21 @@ import java.util.List;
  */
 public interface SeguimientoService {
 
-    /**
-     * Registra una nueva actividad diaria.
-     */
     SeguimientoResponse registrar(SeguimientoRequest request);
 
-    /**
-     * Recupera el historial de seguimientos de una práctica.
-     */
     List<SeguimientoResponse> listarPorPractica(Long practicaId);
 
     /**
-     * Permite a un tutor validar o rechazar un seguimiento.
+     * Primera validación: tutor de empresa aprueba (PENDIENTE_CENTRO) o rechaza (RECHAZADO).
+     * El rechazo genera automáticamente una incidencia de tipo RECHAZO_PARTE.
      */
-    SeguimientoResponse validar(Long id, String nuevoEstado, String comentario);
+    SeguimientoResponse validarEmpresa(Long id, String nuevoEstado, String motivo);
 
     /**
-     * Elimina un registro (solo si está en estado PENDIENTE).
+     * Segunda y definitiva validación: tutor del centro marca el parte como COMPLETADO.
+     * Solo actúa sobre partes en estado PENDIENTE_CENTRO.
      */
+    SeguimientoResponse validarCentro(Long id);
+
     void eliminar(Long id);
 }

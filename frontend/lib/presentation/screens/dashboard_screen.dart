@@ -4,13 +4,16 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/practica_model.dart';
 import '../../data/models/seguimiento_model.dart';
 import '../../data/models/incidencia_model.dart';
+import '../../data/models/ausencia_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/practica_provider.dart';
 import '../widgets/seguimiento_tile.dart';
 import '../widgets/incidencia_tile.dart';
+import '../widgets/ausencia_tile.dart';
 import 'seguimiento_screen.dart';
 import 'seguimientos_screen.dart';
 import 'incidencias_screen.dart';
+import 'ausencias_screen.dart';
 import 'chat_placeholder_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -51,9 +54,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 practica: practica,
                 onVerTodosSeguimientos: () => setState(() => _navIndex = 1),
                 onReportarIncidencia: () => setState(() => _navIndex = 2),
+                onVerAusencias: () => setState(() => _navIndex = 3),
               ),
               const SeguimientosScreen(),
               const IncidenciasScreen(),
+              const AusenciasScreen(),
               const ChatPlaceholderScreen(),
             ],
           );
@@ -137,12 +142,14 @@ class _InicioTab extends StatelessWidget {
   final PracticaProvider practica;
   final VoidCallback onVerTodosSeguimientos;
   final VoidCallback onReportarIncidencia;
+  final VoidCallback onVerAusencias;
 
   const _InicioTab({
     required this.auth,
     required this.practica,
     required this.onVerTodosSeguimientos,
     required this.onReportarIncidencia,
+    required this.onVerAusencias,
   });
 
   @override
@@ -160,6 +167,11 @@ class _InicioTab extends StatelessWidget {
             const SizedBox(height: NexusSizes.space2XL),
             if (practica.isLoading)
               const _LoadingCard()
+            else if (practica.errorMessage != null)
+              _ErrorCard(
+                message: practica.errorMessage!,
+                onRetry: () => practica.cargarDashboard(),
+              )
             else if (practica.practicaActiva != null)
               _PracticaCard(practica: practica.practicaActiva!)
             else
@@ -169,6 +181,7 @@ class _InicioTab extends StatelessWidget {
               practica: practica.practicaActiva,
               onVerTodosSeguimientos: onVerTodosSeguimientos,
               onReportarIncidencia: onReportarIncidencia,
+              onVerAusencias: onVerAusencias,
             ),
             const SizedBox(height: NexusSizes.space2XL),
             if (practica.practicaActiva != null) const _AccionesRapidas(),
@@ -388,11 +401,13 @@ class _SectionGrid extends StatelessWidget {
   final Practica? practica;
   final VoidCallback onVerTodosSeguimientos;
   final VoidCallback onReportarIncidencia;
+  final VoidCallback onVerAusencias;
 
   const _SectionGrid({
     required this.practica,
     required this.onVerTodosSeguimientos,
     required this.onReportarIncidencia,
+    required this.onVerAusencias,
   });
 
   @override
@@ -402,12 +417,18 @@ class _SectionGrid extends StatelessWidget {
         final isWide = constraints.maxWidth > 500;
 
         if (isWide) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          return Column(
             children: [
-              Expanded(child: _SeguimientosCard(practica: practica, onVerTodos: onVerTodosSeguimientos)),
-              const SizedBox(width: NexusSizes.spaceLG),
-              Expanded(child: _IncidenciasCard(practica: practica, onReportar: onReportarIncidencia)),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _SeguimientosCard(practica: practica, onVerTodos: onVerTodosSeguimientos)),
+                  const SizedBox(width: NexusSizes.spaceLG),
+                  Expanded(child: _IncidenciasCard(practica: practica, onReportar: onReportarIncidencia)),
+                ],
+              ),
+              const SizedBox(height: NexusSizes.spaceLG),
+              _AusenciasCard(practica: practica, onVerAusencias: onVerAusencias),
             ],
           );
         }
@@ -416,6 +437,8 @@ class _SectionGrid extends StatelessWidget {
             _SeguimientosCard(practica: practica, onVerTodos: onVerTodosSeguimientos),
             const SizedBox(height: NexusSizes.spaceLG),
             _IncidenciasCard(practica: practica, onReportar: onReportarIncidencia),
+            const SizedBox(height: NexusSizes.spaceLG),
+            _AusenciasCard(practica: practica, onVerAusencias: onVerAusencias),
           ],
         );
       },
@@ -497,6 +520,45 @@ class _IncidenciasLista extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: incidencias.map((i) => IncidenciaTile(incidencia: i)).toList(),
+    );
+  }
+}
+
+class _AusenciasCard extends StatelessWidget {
+  final Practica? practica;
+  final VoidCallback onVerAusencias;
+
+  const _AusenciasCard({required this.practica, required this.onVerAusencias});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<PracticaProvider>(
+      builder: (_, provider, __) {
+        final ausencias = provider.ausencias;
+        return _SectionCard(
+          title: 'Ausencias',
+          icon: Icons.date_range_outlined,
+          action: practica != null ? 'Ver todas' : null,
+          onActionTap: onVerAusencias,
+          child: practica == null
+              ? const _SectionEmpty(mensaje: 'Sin practica activa')
+              : ausencias.isEmpty
+                  ? const _SectionEmpty(mensaje: 'Sin ausencias registradas')
+                  : _AusenciasLista(ausencias: ausencias.take(3).toList()),
+        );
+      },
+    );
+  }
+}
+
+class _AusenciasLista extends StatelessWidget {
+  final List<Ausencia> ausencias;
+  const _AusenciasLista({required this.ausencias});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: ausencias.map((a) => AusenciaTile(ausencia: a)).toList(),
     );
   }
 }
@@ -643,6 +705,46 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+// Tarjeta de error de API
+
+class _ErrorCard extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _ErrorCard({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final msg = message.replaceFirst(RegExp(r'^Exception: '), '');
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(NexusSizes.space2XL),
+      decoration: BoxDecoration(
+        color: NexusColors.surface,
+        border: Border.all(color: NexusColors.dangerLight, width: NexusSizes.borderWidth),
+        borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.cloud_off_outlined, size: 36, color: NexusColors.danger),
+          const SizedBox(height: NexusSizes.spaceMD),
+          Text(
+            'No se pudo cargar la práctica',
+            style: NexusText.small.copyWith(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: NexusSizes.spaceXS),
+          Text(msg, style: NexusText.caption, textAlign: TextAlign.center),
+          const SizedBox(height: NexusSizes.spaceLG),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // Skeleton de carga
 
 class _LoadingCard extends StatelessWidget {
@@ -706,6 +808,11 @@ class _NexusRail extends StatelessWidget {
           label: Text('Incidencias'),
         ),
         NavigationRailDestination(
+          icon: Icon(Icons.date_range_outlined),
+          selectedIcon: Icon(Icons.date_range),
+          label: Text('Ausencias'),
+        ),
+        NavigationRailDestination(
           icon: Icon(Icons.chat_bubble_outline),
           selectedIcon: Icon(Icons.chat_bubble),
           label: Text('Chat'),
@@ -743,6 +850,7 @@ class _NexusBottomNav extends StatelessWidget {
           BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Inicio'),
           BottomNavigationBarItem(icon: Icon(Icons.list_alt_outlined), activeIcon: Icon(Icons.list_alt), label: 'Seguimientos'),
           BottomNavigationBarItem(icon: Icon(Icons.warning_amber_outlined), activeIcon: Icon(Icons.warning_amber), label: 'Incidencias'),
+          BottomNavigationBarItem(icon: Icon(Icons.date_range_outlined), activeIcon: Icon(Icons.date_range), label: 'Ausencias'),
           BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Chat'),
         ],
       ),

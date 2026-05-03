@@ -48,6 +48,9 @@ class PracticaControllerTest {
     @MockBean
     private com.tfg.api.security.JwtUtils jwtUtils;
 
+    @MockBean
+    private com.tfg.api.security.TokenBlacklistService tokenBlacklistService;
+
     @Autowired
     private ObjectMapper objectMapper;
 

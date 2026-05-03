@@ -13,11 +13,14 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -39,6 +42,9 @@ class AuthControllerTest {
     @MockBean
     private com.tfg.api.security.JwtUtils jwtUtils;
 
+    @MockBean
+    private com.tfg.api.security.TokenBlacklistService tokenBlacklistService;
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -46,7 +52,7 @@ class AuthControllerTest {
     @DisplayName("Debe registrar un usuario y devolver 201 Created")
     void should_register_user_successfully() throws Exception {
         // Arrange
-        RegisterRequest request = new RegisterRequest("12345678A", "Iker", "Acevedo", "iker@test.com", "password123");
+        RegisterRequest request = new RegisterRequest("12345678A", "Iker", "Acevedo", "iker@test.com", "Test@12345!");
         AuthResponse response = new AuthResponse(1L, "mock-jwt-token", "iker@test.com", "Iker Acevedo", Set.of("ROLE_ALUMNO"));
 
         when(authService.registrar(any(RegisterRequest.class))).thenReturn(response);
@@ -73,6 +79,17 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.errors.email").exists());
+    }
+
+    @Test
+    @DisplayName("[A07] Logout devuelve 204 No Content con token Bearer válido")
+    @WithMockUser
+    void should_logout_and_return_204() throws Exception {
+        doNothing().when(authService).logout(anyString());
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                .header("Authorization", "Bearer test-token-valido"))
+                .andExpect(status().isNoContent());
     }
 
     @Test

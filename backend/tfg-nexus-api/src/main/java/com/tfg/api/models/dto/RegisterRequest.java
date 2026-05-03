@@ -2,6 +2,7 @@ package com.tfg.api.models.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -32,6 +33,10 @@ public record RegisterRequest(
     String email,
 
     @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
+    @Size(min = 10, message = "La contraseña debe tener al menos 10 caracteres")
+    @Pattern(
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z0-9]).{10,}$",
+        message = "La contraseña debe tener al menos una mayúscula, una minúscula, un número y un carácter especial"
+    )
     String password
 ) {}

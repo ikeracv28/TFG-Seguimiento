@@ -3,6 +3,7 @@ package com.tfg.api.models.repository;
 import com.tfg.api.models.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -44,4 +45,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      * @return true si ya existe, false si está libre.
      */
     Boolean existsByEmail(String email);
+
+    List<Usuario> findAllByOrderByFechaCreacionDesc();
 }

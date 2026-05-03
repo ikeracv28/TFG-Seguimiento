@@ -22,7 +22,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/practicas")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class PracticaController {
 
     private final PracticaService practicaService;
@@ -39,7 +38,6 @@ public class PracticaController {
 
     /**
      * Devuelve la práctica ACTIVA del alumno autenticado.
-     * El alumno no necesita conocer su propio ID; el servicio lo obtiene del JWT.
      * Acceso: Solo ALUMNO.
      */
     @GetMapping("/me")
@@ -49,11 +47,31 @@ public class PracticaController {
     }
 
     /**
+     * Lista las prácticas donde el tutor de empresa autenticado está asignado.
+     * Acceso: Solo TUTOR_EMPRESA.
+     */
+    @GetMapping("/tutor-empresa/me")
+    @PreAuthorize("hasRole('TUTOR_EMPRESA')")
+    public ResponseEntity<List<PracticaResponse>> listarMisPracticasComoTutorEmpresa() {
+        return ResponseEntity.ok(practicaService.listarMisPracticasComoTutorEmpresa());
+    }
+
+    /**
+     * Lista las prácticas donde el tutor del centro autenticado está asignado.
+     * Acceso: Solo TUTOR_CENTRO.
+     */
+    @GetMapping("/tutor-centro/me")
+    @PreAuthorize("hasRole('TUTOR_CENTRO')")
+    public ResponseEntity<List<PracticaResponse>> listarMisPracticasComoTutorCentro() {
+        return ResponseEntity.ok(practicaService.listarMisPracticasComoTutorCentro());
+    }
+
+    /**
      * Obtiene los detalles de una práctica por su ID.
      * Acceso: Cualquier usuario autenticado (la lógica de servicio podría filtrar más adelante).
      */
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('ADMIN','TUTOR_CENTRO','TUTOR_EMPRESA') or @practicaService.esParticipante(#id, authentication.name)")
     public ResponseEntity<PracticaResponse> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(practicaService.obtenerPorId(id));
     }
@@ -63,7 +81,7 @@ public class PracticaController {
      * Acceso: ADMIN, TUTORES y el propio ALUMNO.
      */
     @GetMapping("/alumno/{alumnoId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TUTOR_CENTRO', 'TUTOR_EMPRESA') or #alumnoId == authentication.principal.id")
+    @PreAuthorize("hasAnyRole('ADMIN','TUTOR_CENTRO','TUTOR_EMPRESA') or @practicaService.perteneceAlAlumnoAutenticado(#alumnoId, authentication.name)")
     public ResponseEntity<List<PracticaResponse>> listarPorAlumno(@PathVariable Long alumnoId) {
         return ResponseEntity.ok(practicaService.listarPorAlumno(alumnoId));
     }

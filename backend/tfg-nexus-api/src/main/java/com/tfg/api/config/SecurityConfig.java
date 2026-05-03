@@ -2,6 +2,7 @@ package com.tfg.api.config;
 
 import com.tfg.api.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,68 +26,62 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * Configuración maestra de seguridad para Nexus-TFG.
- * Aquí se coordinan el cifrado, la gestión de usuarios y el filtro JWT.
- */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Permite el uso de @PreAuthorize en los controladores
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
 
-    /**
-     * Definición de la cadena de filtros de seguridad.
-     * Es el corazón de la protección de la API.
-     */
+    @Value("${ALLOWED_ORIGIN:http://localhost:3000}")
+    private String allowedOrigin;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // 1. Configuración de CORS global.
             .cors(Customizer.withDefaults())
-            
-            // 2. Deshabilitamos CSRF (Cross-Site Request Forgery). 
-            // Como usamos JWT y no sesiones de navegador (cookies), no es necesario.
             .csrf(AbstractHttpConfigurer::disable)
-            
-            // 3. Configuración de rutas (Endpoints)
+
+            // Cabeceras de seguridad HTTP (A05)
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.deny())
+                .contentTypeOptions(Customizer.withDefaults())
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000))
+                .xssProtection(Customizer.withDefaults())
+            )
+
             .authorizeHttpRequests(auth -> auth
-                // Rutas públicas: Registro y Login deben ser accesibles para todos.
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                // El resto de rutas requieren estar autenticado.
+                .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated()
             )
-            
-            // 4. Gestión de sesiones: Indicamos que la API es STATELESS (Sin estado).
-            // No se crearán sesiones en el servidor.
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            
-            // 5. Registramos nuestro proveedor de autenticación personalizado.
             .authenticationProvider(authenticationProvider())
-            
-            // 6. Añadimos el filtro JWT antes del filtro de usuario/contraseña estándar.
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * Definición de la política CORS global.
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // En producción se debería restringir a los dominios oficiales del frontend.
-        configuration.setAllowedOrigins(List.of("*"));
+        // Orígenes explícitos — sin wildcard (A01)
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:3000",
+            "http://localhost:8080",
+            allowedOrigin
+        ));
+        configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
         configuration.setExposedHeaders(List.of("Authorization"));
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

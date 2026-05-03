@@ -49,7 +49,26 @@ public interface PracticaService {
 
     /**
      * Devuelve la práctica ACTIVA del alumno autenticado actualmente.
-     * Se usa en el endpoint /me para que el alumno no tenga que conocer su ID.
      */
     PracticaResponse obtenerPracticaActivaDelAlumno();
+
+    /**
+     * Lista las prácticas donde el tutor de empresa autenticado está asignado.
+     */
+    List<PracticaResponse> listarMisPracticasComoTutorEmpresa();
+
+    /**
+     * Lista las prácticas donde el tutor del centro autenticado está asignado.
+     */
+    List<PracticaResponse> listarMisPracticasComoTutorCentro();
+
+    /**
+     * Usado en SpEL: devuelve true si el alumno con alumnoId tiene el email del usuario autenticado.
+     */
+    boolean perteneceAlAlumnoAutenticado(Long alumnoId, String email);
+
+    /**
+     * Usado en SpEL: devuelve true si el usuario (por email) es alumno, tutor centro o tutor empresa de la práctica.
+     */
+    boolean esParticipante(Long practicaId, String email);
 }

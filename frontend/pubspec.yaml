@@ -51,6 +51,12 @@ dependencies:
   # Internacionalización y formato de fechas/números
   intl: ^0.20.2
 
+  # Selector de ficheros (justificante ausencias) — funciona en web, móvil y escritorio
+  file_picker: ^8.0.7
+
+  # Chat WebSocket/STOMP en tiempo real (web_socket_channel funciona en Flutter web)
+  web_socket_channel: ^2.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

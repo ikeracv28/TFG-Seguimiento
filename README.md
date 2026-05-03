@@ -112,7 +112,7 @@ Esta separación refleja el proceso real de las FCT: el tutor de empresa valida 
 ## Estructura del proyecto
 
 ```
-TFG-Seguimiento/
+Nexus-TFG/
 ├── backend/
 │   └── tfg-nexus-api/
 │       ├── src/main/java/com/tfg/api/
@@ -137,9 +137,10 @@ TFG-Seguimiento/
 │           ├── providers/            # AuthProvider, PracticaProvider
 │           └── screens/              # LoginScreen, DashboardScreen
 ├── docker-compose.yml
-├── .env.example                      # plantilla de variables de entorno (sí se commitea)
-├── .env                              # local (NO commitear)
-├── CLAUDE.md                         # Contexto para Claude Code
+├── .env.example                      # Plantilla de variables de entorno
+├── ARQUITECTURA_API.md               # Documentación técnica de la API REST
+├── ERD_DATABASE.md                   # Modelo entidad-relación
+├── USUARIOS_PRUEBA.md                # Credenciales para probar la plataforma
 └── DESIGN_SYSTEM.md                  # Sistema de diseño Nexus
 ```
 
@@ -153,14 +154,14 @@ TFG-Seguimiento/
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/ikeracv28/TFG-Seguimiento.git
-cd TFG-Seguimiento
+git clone https://github.com/ikeracv28/Nexus-TFG.git
+cd Nexus-TFG
 ```
 
 ### 2. Configurar variables de entorno
 ```bash
 cp .env.example .env
-# Edita .env con tus valores
+# Edita .env con tus valores (o usa los valores de desarrollo por defecto)
 ```
 
 ### 3. Levantar todo con Docker
@@ -180,11 +181,14 @@ http://localhost:3000
 
 ### Usuarios de prueba
 
+Ver [USUARIOS_PRUEBA.md](USUARIOS_PRUEBA.md) para el listado completo de credenciales.
+
 | Rol | Email | Contraseña |
 |-----|-------|-----------|
-| Administrador | admin@nexus.edu | admin123 |
-| Tutor Centro | tutor@nexus.edu | 123456 |
-| Alumno | alumno@nexus.edu | 123456 |
+| Administrador | admin@nexus.edu | Admin@Nexus2026 |
+| Tutor Centro | tutor@nexus.edu | Tutor@Nexus2026 |
+| Tutor Empresa | tutorempresa@nexus.edu | Empresa@Nexus2026 |
+| Alumno | alumno@nexus.edu | Alumno@Nexus2026 |
 
 ---
 
@@ -232,7 +236,7 @@ Authorization: Bearer <token>
 
 ## Tests
 
-El proyecto cuenta con una batería de **10 tests de integración** con JUnit 5 + MockMvc + Spring Security Test.
+El proyecto cuenta con una batería de **121 tests** con JUnit 5 + MockMvc + Spring Security Test.
 
 Los tests verifican tanto los flujos correctos como los casos de acceso denegado:
 
@@ -242,17 +246,19 @@ cd backend/tfg-nexus-api
 ```
 
 ```
-[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 121, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
 Casos cubiertos:
-- Login correcto devuelve JWT válido
-- Login con credenciales incorrectas devuelve 401
-- Tutor puede crear y listar prácticas (200 OK)
-- Alumno no puede acceder a endpoints de gestión (403 Forbidden)
-- Acceso sin token devuelve 401
-- Paginación de prácticas funciona correctamente
+- Autenticación JWT (login, tokens inválidos, expiración)
+- Seguridad por roles: ALUMNO, TUTOR_CENTRO, TUTOR_EMPRESA, ADMIN
+- CRUD de prácticas con control de acceso
+- Flujo de seguimientos con doble validación
+- Módulo de ausencias y generación automática de incidencias
+- Chat/mensajes con WebSocket
+- Panel de administración (usuarios, audit log)
+- Tests OWASP: SQL injection, brute force, JWT tampering
 
 ---
 
@@ -289,23 +295,29 @@ Estilo visual: Notion/Linear. Sin Material azul genérico, inputs con borde fino
 - Detección y rediseño del flujo de validación de seguimientos
 - Docker Compose con los tres servicios
 
-### 🔄 Hito 3 — 75% (en desarrollo)
-- Migración Flyway V4: nuevos estados de seguimientos
-- SeguimientoController con doble validación
-- IncidenciaController completo
-- Pantallas Flutter: seguimientos, incidencias, panel tutor
-- Navegación adaptativa (NavigationRail web / BottomNav móvil)
-
-### 📋 Hito 4 — 100% (planificado)
+### ✅ Hito 3 — 75% (completado)
+- SeguimientoController con doble validación (empresa → centro)
+- IncidenciaController completo con generación automática
+- Módulo de ausencias (CRUD + validación)
+- Panel de administración: gestión de usuarios y audit log
 - Chat en tiempo real con WebSocket/STOMP
-- Contador de horas acumuladas
-- Panel del centro educativo con métricas
-- Tests end-to-end
+- Seguridad avanzada: rate limiting, token blacklist, OWASP
+- 121 tests (integración + seguridad)
+- Pantallas Flutter por rol: alumno, tutor centro, tutor empresa, admin
+
+### 🔄 Hito 4 — 100% (en desarrollo)
+- Contador de horas FCT acumuladas
+- Métricas del centro educativo
+- Notificaciones push
+- Pulido UI final y tests E2E
 
 ---
 
 ## Repositorios
 
+| Repositorio | Descripción |
+|-------------|-------------|
+| [Nexus-TFG](https://github.com/ikeracv28/Nexus-TFG) | Repositorio de desarrollo (este) |
 | [TFG-Seguimiento](https://github.com/ikeracv28/TFG-Seguimiento) | Repositorio limpio para entrega al profesor |
 
 ---

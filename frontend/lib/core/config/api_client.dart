@@ -23,15 +23,23 @@ class ApiClient {
   void _setupInterceptors() {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // Recuperamos el token de almacenamiento seguro
-        final token = await _storage.read(key: 'jwt_token');
+        // flutter_secure_storage en web puede lanzar si los datos cifrados están corruptos
+        // (p.ej., tras cambiar la clave AES o reconstruir la app). Si falla, limpiamos el storage
+        // y tratamos al usuario como no autenticado — verá la pantalla de login.
+        String? token;
+        try {
+          token = await _storage.read(key: 'jwt_token');
+        } catch (_) {
+          try {
+            await _storage.deleteAll();
+          } catch (_) {}
+        }
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
       },
       onError: (DioException e, handler) {
-        // Aquí podríamos gestionar renovaciones de token o errores 401 globales
         return handler.next(e);
       },
     ));

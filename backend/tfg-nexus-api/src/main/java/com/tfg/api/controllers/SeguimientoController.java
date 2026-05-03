@@ -12,32 +12,19 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Controlador REST para la gestión de Seguimientos Diarios.
- * Protegido mediante seguridad basada en roles.
- */
 @RestController
 @RequestMapping("/api/v1/seguimientos")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class SeguimientoController {
 
     private final SeguimientoService seguimientoService;
 
-    /**
-     * Registra un nuevo parte de seguimiento.
-     * Acceso: Únicamente ALUMNOS.
-     */
     @PostMapping
     @PreAuthorize("hasRole('ALUMNO')")
     public ResponseEntity<SeguimientoResponse> registrar(@Valid @RequestBody SeguimientoRequest request) {
         return new ResponseEntity<>(seguimientoService.registrar(request), HttpStatus.CREATED);
     }
 
-    /**
-     * Lista el historial de seguimientos de una práctica.
-     * Acceso: Todos los roles involucrados en el convenio.
-     */
     @GetMapping("/practica/{practicaId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TUTOR_CENTRO', 'TUTOR_EMPRESA', 'ALUMNO')")
     public ResponseEntity<List<SeguimientoResponse>> listarPorPractica(@PathVariable Long practicaId) {
@@ -45,22 +32,28 @@ public class SeguimientoController {
     }
 
     /**
-     * Valida o rechaza un registro de seguimiento.
-     * Acceso: TUTORES del centro o de la empresa.
+     * Primera validación: solo el tutor de empresa puede actuar sobre partes en PENDIENTE_EMPRESA.
+     * nuevoEstado: PENDIENTE_CENTRO (aprueba) o RECHAZADO (rechaza, motivo obligatorio).
      */
-    @PatchMapping("/{id}/validar")
-    @PreAuthorize("hasAnyRole('TUTOR_CENTRO', 'TUTOR_EMPRESA')")
-    public ResponseEntity<SeguimientoResponse> validar(
+    @PatchMapping("/{id}/validar-empresa")
+    @PreAuthorize("hasRole('TUTOR_EMPRESA')")
+    public ResponseEntity<SeguimientoResponse> validarEmpresa(
             @PathVariable Long id,
             @RequestParam String nuevoEstado,
-            @RequestParam(required = false) String comentario) {
-        return ResponseEntity.ok(seguimientoService.validar(id, nuevoEstado, comentario));
+            @RequestParam(required = false) String motivo) {
+        return ResponseEntity.ok(seguimientoService.validarEmpresa(id, nuevoEstado, motivo));
     }
 
     /**
-     * Elimina un registro de seguimiento.
-     * Acceso: ALUMNOS (la lógica de servicio limita el borrado a estados PENDIENTE).
+     * Segunda validación: solo el tutor del centro puede actuar sobre partes en PENDIENTE_CENTRO.
+     * Siempre marca el parte como COMPLETADO (las horas se suman al progreso).
      */
+    @PatchMapping("/{id}/validar-centro")
+    @PreAuthorize("hasRole('TUTOR_CENTRO')")
+    public ResponseEntity<SeguimientoResponse> validarCentro(@PathVariable Long id) {
+        return ResponseEntity.ok(seguimientoService.validarCentro(id));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ALUMNO')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {

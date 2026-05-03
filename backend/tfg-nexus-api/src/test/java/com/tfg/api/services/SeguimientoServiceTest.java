@@ -67,23 +67,20 @@ class SeguimientoServiceTest {
 
         assertThat(response.id()).isNotNull();
         assertThat(response.horasRealizadas()).isEqualTo(4);
-        assertThat(response.estado()).isEqualTo("PENDIENTE");
+        assertThat(response.estado()).isEqualTo("PENDIENTE_EMPRESA");
     }
 
     @Test
-    @WithMockUser(username = "tutor@test.com")
-    @DisplayName("Debe permitir validar un seguimiento a un tutor")
-    void should_validate_seguimiento() {
-        // Primero registramos uno
+    @WithMockUser(username = "empresa@test.com")
+    @DisplayName("Tutor de empresa aprueba un parte: estado pasa a PENDIENTE_CENTRO")
+    void should_validate_empresa() {
         SeguimientoResponse reg = seguimientoService.registrar(new SeguimientoRequest(
                 practicaTest.getId(), LocalDate.now(), 6, "Pruebas unitarias"
         ));
 
-        // Validamos
-        SeguimientoResponse validated = seguimientoService.validar(reg.id(), "VALIDADO", "Buen trabajo");
+        SeguimientoResponse result = seguimientoService.validarEmpresa(reg.id(), "PENDIENTE_CENTRO", null);
 
-        assertThat(validated.estado()).isEqualTo("VALIDADO");
-        assertThat(validated.comentarioTutor()).isEqualTo("Buen trabajo");
-        assertThat(validated.validadoPorNombre()).contains("Tutor Centro");
+        assertThat(result.estado()).isEqualTo("PENDIENTE_CENTRO");
+        assertThat(result.validadoPorNombre()).contains("Tutor Empresa");
     }
 }

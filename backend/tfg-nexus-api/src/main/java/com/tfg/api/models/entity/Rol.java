@@ -8,7 +8,8 @@ import lombok.*;
  * Define los niveles de acceso (ALUMNO, TUTOR_CENTRO, TUTOR_EMPRESA, ADMIN).
  * 
  * Uso de Lombok:
- * @Data: Genera getters, setters, equals, hashCode y toString automáticamente.
+ * @Getter + @Setter: Genera getters y setters.
+ * @EqualsAndHashCode(of = "id"): Igualdad por id — evita StackOverflowError con relaciones lazy en JPA.
  * @NoArgsConstructor: Constructor vacío requerido por JPA.
  * @AllArgsConstructor: Constructor con todos los campos para facilitar pruebas.
  * @Builder: Patrón de diseño para construir objetos de forma legible.

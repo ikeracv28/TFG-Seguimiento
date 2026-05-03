@@ -19,7 +19,7 @@ public interface SeguimientoMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "practica", ignore = true)
-    @Mapping(target = "estado", constant = "PENDIENTE")
+    @Mapping(target = "estado", ignore = true)
     @Mapping(target = "validadoPor", ignore = true)
     @Mapping(target = "comentarioTutor", ignore = true)
     @Mapping(target = "fechaCreacion", ignore = true)

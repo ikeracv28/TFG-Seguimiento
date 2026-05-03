@@ -42,6 +42,10 @@ RUN flutter config --enable-web
 # 5. Establecemos el directorio de trabajo donde colocaremos nuestro código
 WORKDIR /app
 
+# ARG que permite invalidar el caché del código fuente sin re-clonar Flutter.
+# Uso: docker compose build --build-arg CACHE_DATE=$(date +%s) frontend
+ARG CACHE_DATE=default
+
 # 6. Copiamos todo el código fuente del frontend al contenedor
 COPY . .
 
@@ -61,6 +65,9 @@ FROM nginx:alpine
 # 9. Copiamos ÚNICAMENTE los archivos estáticos compilados de la etapa anterior ("builder").
 # Todo lo demás (el SDK de Flutter, código fuente original, herramientas) se descarta.
 COPY --from=builder /app/build/web /usr/share/nginx/html
+
+# Configuración Nginx con cache-control correcto para Flutter web
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # 10. Exponemos el puerto 80 donde Nginx servirá la web
 EXPOSE 80

@@ -34,7 +34,7 @@ class Seguimiento {
       fechaRegistro: DateTime.parse(json['fechaRegistro']),
       horasRealizadas: json['horasRealizadas'],
       descripcion: json['descripcion'],
-      estado: json['estado'] ?? 'PENDIENTE',
+      estado: json['estado'] ?? 'PENDIENTE_EMPRESA',
       validadoPorId: json['validadoPorId'],
       validadoPorNombre: json['validadoPorNombre'],
       comentarioTutor: json['comentarioTutor'],

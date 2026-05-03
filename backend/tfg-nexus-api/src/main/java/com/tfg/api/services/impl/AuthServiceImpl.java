@@ -2,6 +2,9 @@ package com.tfg.api.services.impl;
 
 import com.tfg.api.exceptions.BusinessRuleException;
 import com.tfg.api.exceptions.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
 import com.tfg.api.models.dto.AuthResponse;
 import com.tfg.api.models.dto.LoginRequest;
 import com.tfg.api.models.dto.RegisterRequest;
@@ -11,6 +14,7 @@ import com.tfg.api.models.mapper.UsuarioMapper;
 import com.tfg.api.models.repository.RolRepository;
 import com.tfg.api.models.repository.UsuarioRepository;
 import com.tfg.api.security.JwtUtils;
+import com.tfg.api.security.TokenBlacklistService;
 import com.tfg.api.security.UserDetailsServiceImpl;
 import com.tfg.api.services.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -30,10 +34,13 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
+
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final TokenBlacklistService tokenBlacklistService;
     private final AuthenticationManager authenticationManager;
     private final UsuarioMapper usuarioMapper;
     private final UserDetailsServiceImpl userDetailsService;
@@ -63,6 +70,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Persistencia
         Usuario usuarioGuardado = usuarioRepository.save(usuario);
+        log.info("USUARIO_REGISTRADO id={} rol=ALUMNO", usuarioGuardado.getId());
 
         // CARGA DE USERDETAILS PARA JWT (Corrección de tipo)
         UserDetails userDetails = userDetailsService.loadUserByUsername(usuarioGuardado.getEmail());
@@ -82,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         Usuario usuario = usuarioRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el email: " + request.email()));
+                .orElseThrow(() -> new BadCredentialsException("Credenciales de acceso inválidas"));
 
         // CARGA DE USERDETAILS PARA JWT (Corrección de tipo)
         UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getEmail());
@@ -91,12 +99,24 @@ public class AuthServiceImpl implements AuthService {
         return usuarioMapper.toAuthResponse(usuario, token);
     }
 
-    private void validarUnicidad(RegisterRequest request) {
-        if (usuarioRepository.existsByEmail(request.email())) {
-            throw new BusinessRuleException("El correo electrónico ya se encuentra registrado en Nexus");
+    /**
+     * [A07] Invalida el token activo añadiendo su JTI a la blacklist.
+     * El cliente debe borrar el token de su almacenamiento local tras esta llamada.
+     */
+    @Override
+    public void logout(String token) {
+        try {
+            String jti = jwtUtils.extractJti(token);
+            tokenBlacklistService.revocar(jti);
+            log.info("LOGOUT_EXITOSO jti={}", jti);
+        } catch (Exception e) {
+            log.warn("LOGOUT_TOKEN_INVALIDO motivo={}", e.getMessage());
         }
-        if (usuarioRepository.existsByDni(request.dni())) {
-            throw new BusinessRuleException("El DNI introducido ya existe en nuestro sistema");
+    }
+
+    private void validarUnicidad(RegisterRequest request) {
+        if (usuarioRepository.existsByEmail(request.email()) || usuarioRepository.existsByDni(request.dni())) {
+            throw new BusinessRuleException("Los datos introducidos no están disponibles. Comprueba el formulario.");
         }
     }
 }

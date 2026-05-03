@@ -18,4 +18,9 @@ public interface AuthService {
      * Realiza el login oficial del sistema y genera el Token JWT.
      */
     AuthResponse login(LoginRequest request);
+
+    /**
+     * Invalida el token JWT activo añadiendo su JTI a la blacklist.
+     */
+    void logout(String token);
 }

@@ -27,39 +27,40 @@ class AuthService {
       
       return authResponse;
     } on DioException catch (e) {
-      // Manejo de error más robusto
-      String errorMessage = 'Error al iniciar sesión';
-      
-      if (e.response?.data != null) {
-        final data = e.response!.data;
-        if (data is Map && data.containsKey('message')) {
-          errorMessage = data['message'];
-        } else if (data is String && data.isNotEmpty) {
-          errorMessage = data;
-        }
-      } else if (e.type == DioExceptionType.connectionTimeout || 
-                 e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = 'El servidor tarda demasiado en responder';
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = 'No se puede conectar con el servidor (¿está encendido?)';
-      }
-      
-      throw Exception(errorMessage);
+      final data = e.response?.data;
+      final message = (data is Map ? data['message'] as String? : null)
+          ?? 'Error al iniciar sesión';
+      throw Exception(message);
     }
   }
 
   /**
-   * Cierra la sesión eliminando el token.
+   * Cierra la sesión: revoca el token en el servidor (A07) y elimina el almacenamiento local.
    */
   Future<void> logout() async {
-    await _storage.delete(key: 'jwt_token');
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      if (token != null) {
+        await _apiClient.dio.post('/auth/logout');
+      }
+    } catch (_) {
+      // Si el backend falla, continuamos con el logout local igualmente
+    } finally {
+      try { await _storage.deleteAll(); } catch (_) {}
+    }
   }
 
   /**
    * Verifica si el usuario tiene una sesión activa.
+   * Si el storage está corrupto, lo limpia y devuelve false.
    */
   Future<bool> isAuthenticated() async {
-    final token = await _storage.read(key: 'jwt_token');
-    return token != null;
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      return token != null;
+    } catch (_) {
+      try { await _storage.deleteAll(); } catch (_) {}
+      return false;
+    }
   }
 }

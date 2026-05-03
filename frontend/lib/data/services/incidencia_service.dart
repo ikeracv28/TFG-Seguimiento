@@ -21,21 +21,10 @@ class IncidenciaService {
       }
       return [];
     } on DioException catch (e) {
-      String errorMessage = 'Error al obtener incidencias';
-      if (e.response?.data != null) {
-        final data = e.response!.data;
-        if (data is Map && data.containsKey('message')) {
-          errorMessage = data['message'];
-        }
-      }
-      throw Exception(errorMessage);
+      throw Exception('Error al obtener incidencias: ${e.message}');
     }
   }
 
-  /**
-   * Reporta una nueva incidencia en la práctica activa del usuario autenticado.
-   * Endpoint: POST /api/v1/incidencias
-   */
   Future<Incidencia> reportar({required String tipo, required String descripcion}) async {
     try {
       final response = await _apiClient.dio.post('/incidencias', data: {
@@ -45,6 +34,20 @@ class IncidenciaService {
       return Incidencia.fromJson(response.data);
     } on DioException catch (e) {
       throw Exception('Error al reportar incidencia: ${e.message}');
+    }
+  }
+
+  /// Actualiza el estado de una incidencia (TUTOR_CENTRO).
+  /// Transiciones válidas: ABIERTA → EN_PROCESO → RESUELTA → CERRADA.
+  Future<Incidencia> actualizarEstado(int id, String nuevoEstado) async {
+    try {
+      final response = await _apiClient.dio.patch(
+        '/incidencias/$id/estado',
+        queryParameters: {'nuevoEstado': nuevoEstado},
+      );
+      return Incidencia.fromJson(response.data);
+    } on DioException catch (e) {
+      throw Exception('Error al actualizar estado: ${e.message}');
     }
   }
 }

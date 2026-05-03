@@ -4,49 +4,66 @@ import com.tfg.api.exceptions.BusinessRuleException;
 import com.tfg.api.exceptions.ResourceNotFoundException;
 import com.tfg.api.models.dto.SeguimientoRequest;
 import com.tfg.api.models.dto.SeguimientoResponse;
+import com.tfg.api.models.entity.Incidencia;
 import com.tfg.api.models.entity.Practica;
 import com.tfg.api.models.entity.Seguimiento;
 import com.tfg.api.models.entity.Usuario;
 import com.tfg.api.models.mapper.SeguimientoMapper;
+import com.tfg.api.models.repository.IncidenciaRepository;
 import com.tfg.api.models.repository.PracticaRepository;
 import com.tfg.api.models.repository.SeguimientoRepository;
 import com.tfg.api.models.repository.UsuarioRepository;
+import com.tfg.api.services.AuditService;
 import com.tfg.api.services.SeguimientoService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Implementación de la lógica de negocio para los partes de seguimiento.
- */
 @Service
 @RequiredArgsConstructor
 public class SeguimientoServiceImpl implements SeguimientoService {
 
+    private static final Logger log = LoggerFactory.getLogger(SeguimientoServiceImpl.class);
+
     private final SeguimientoRepository seguimientoRepository;
     private final PracticaRepository practicaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final IncidenciaRepository incidenciaRepository;
     private final SeguimientoMapper seguimientoMapper;
+    private final AuditService auditService;
 
     @Override
     @Transactional
     public SeguimientoResponse registrar(SeguimientoRequest request) {
-        // Buscamos la práctica asociada
         Practica practica = practicaRepository.findById(request.practicaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Práctica no encontrada"));
 
-        // Creamos la entidad base
+        // A04: máximo 1 parte pendiente por semana ISO (lunes-domingo)
+        LocalDate lunes = request.fechaRegistro().with(DayOfWeek.MONDAY);
+        LocalDate domingo = request.fechaRegistro().with(DayOfWeek.SUNDAY);
+        if (seguimientoRepository.existsByPracticaIdAndEstadoAndFechaRegistroBetween(
+                request.practicaId(), "PENDIENTE_EMPRESA", lunes, domingo)) {
+            throw new BusinessRuleException(
+                "Ya tienes un parte pendiente de validación para esta semana. Espera a que sea procesado antes de registrar otro.");
+        }
+
         Seguimiento seguimiento = seguimientoMapper.toEntity(request);
         seguimiento.setPractica(practica);
-        seguimiento.setEstado("PENDIENTE");
+        seguimiento.setEstado("PENDIENTE_EMPRESA");
 
-        // Guardamos y devolvemos la respuesta
-        Seguimiento guardado = seguimientoRepository.save(seguimiento);
-        return seguimientoMapper.toResponse(guardado);
+        SeguimientoResponse registrado = seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
+        String actor = currentUserEmail();
+        auditService.registrar("SEGUIMIENTOS", "REGISTRAR", registrado.id(),
+                "Fecha=" + request.fechaRegistro() + " practica=" + practica.getId(), actor);
+        return registrado;
     }
 
     @Override
@@ -60,25 +77,64 @@ public class SeguimientoServiceImpl implements SeguimientoService {
 
     @Override
     @Transactional
-    public SeguimientoResponse validar(Long id, String nuevoEstado, String comentario) {
+    public SeguimientoResponse validarEmpresa(Long id, String nuevoEstado, String motivo) {
         Seguimiento seguimiento = seguimientoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
 
-        // Obtenemos el tutor que realiza la acción desde el contexto de seguridad
-        String emailTutor = SecurityContextHolder.getContext().getAuthentication().getName();
-        Usuario tutor = usuarioRepository.findByEmail(emailTutor)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no identificado"));
-
-        // Validamos el estado permitido
-        if (!nuevoEstado.equals("VALIDADO") && !nuevoEstado.equals("RECHAZADO")) {
-            throw new BusinessRuleException("Estado de validación no permitido");
+        if (!"PENDIENTE_EMPRESA".equals(seguimiento.getEstado())) {
+            throw new BusinessRuleException("Este parte ya fue procesado por la empresa");
+        }
+        if (!"PENDIENTE_CENTRO".equals(nuevoEstado) && !"RECHAZADO".equals(nuevoEstado)) {
+            throw new BusinessRuleException("Estado no válido para la empresa: " + nuevoEstado);
+        }
+        if ("RECHAZADO".equals(nuevoEstado) && (motivo == null || motivo.isBlank())) {
+            throw new BusinessRuleException("El motivo es obligatorio al rechazar un parte");
         }
 
-        seguimiento.setEstado(nuevoEstado);
-        seguimiento.setValidadoPor(tutor);
-        seguimiento.setComentarioTutor(comentario);
+        String emailTutor = currentUserEmail();
+        Usuario tutorEmpresa = usuarioRepository.findByEmail(emailTutor)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no identificado"));
 
-        return seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
+        seguimiento.setEstado(nuevoEstado);
+        seguimiento.setValidadoPor(tutorEmpresa);
+        seguimiento.setComentarioTutor(motivo);
+
+        if ("RECHAZADO".equals(nuevoEstado)) {
+            log.info("SEGUIMIENTO_RECHAZADO id={} por_tutor={} motivo={}", id, emailTutor, motivo);
+            crearIncidenciaRechazo(seguimiento.getPractica(), tutorEmpresa, motivo);
+        } else {
+            log.info("SEGUIMIENTO_VALIDADO_EMPRESA id={} por_tutor={}", id, emailTutor);
+        }
+
+        SeguimientoResponse validado = seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
+        auditService.registrar("SEGUIMIENTOS", "VALIDAR_EMPRESA_" + nuevoEstado, id,
+                "Seguimiento → " + nuevoEstado, emailTutor);
+        return validado;
+    }
+
+    @Override
+    @Transactional
+    public SeguimientoResponse validarCentro(Long id) {
+        Seguimiento seguimiento = seguimientoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
+
+        if (!"PENDIENTE_CENTRO".equals(seguimiento.getEstado())) {
+            throw new BusinessRuleException(
+                    "El parte debe ser validado por la empresa antes de que el centro actúe");
+        }
+
+        String emailTutor = currentUserEmail();
+        Usuario tutorCentro = usuarioRepository.findByEmail(emailTutor)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no identificado"));
+
+        seguimiento.setEstado("COMPLETADO");
+        seguimiento.setValidadoPor(tutorCentro);
+        log.info("SEGUIMIENTO_COMPLETADO id={} por_tutor={}", id, emailTutor);
+
+        SeguimientoResponse completado = seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
+        auditService.registrar("SEGUIMIENTOS", "VALIDAR_CENTRO", id,
+                "Seguimiento completado", emailTutor);
+        return completado;
     }
 
     @Override
@@ -87,11 +143,26 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         Seguimiento seguimiento = seguimientoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
 
-        // Regla: Solo se pueden borrar registros pendientes
-        if (!"PENDIENTE".equals(seguimiento.getEstado())) {
-            throw new BusinessRuleException("No se puede eliminar un registro ya validado o rechazado");
+        if (!"PENDIENTE_EMPRESA".equals(seguimiento.getEstado())) {
+            throw new BusinessRuleException("No se puede eliminar un registro ya procesado");
         }
 
         seguimientoRepository.delete(seguimiento);
+    }
+
+    private String currentUserEmail() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null) ? auth.getName() : "system";
+    }
+
+    private void crearIncidenciaRechazo(Practica practica, Usuario tutorEmpresa, String motivo) {
+        Incidencia incidencia = Incidencia.builder()
+                .practica(practica)
+                .creadaPor(tutorEmpresa)
+                .tipo("RECHAZO_PARTE")
+                .descripcion("Parte rechazado. Motivo: " + motivo)
+                .estado("ABIERTA")
+                .build();
+        incidenciaRepository.save(incidencia);
     }
 }
