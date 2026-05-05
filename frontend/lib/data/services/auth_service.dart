@@ -51,16 +51,24 @@ class AuthService {
   }
 
   /**
-   * Verifica si el usuario tiene una sesión activa.
-   * Si el storage está corrupto, lo limpia y devuelve false.
+   * Llama a GET /auth/me con el token almacenado.
+   * Si el token sigue siendo válido, devuelve el usuario reconstruido.
+   * Si recibe 401 o no hay token, limpia el storage y devuelve null.
    */
-  Future<bool> isAuthenticated() async {
+  Future<User?> recuperarSesion() async {
     try {
       final token = await _storage.read(key: 'jwt_token');
-      return token != null;
+      if (token == null) return null;
+
+      final response = await _apiClient.dio.get('/auth/me');
+      return User.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        try { await _storage.deleteAll(); } catch (_) {}
+      }
+      return null;
     } catch (_) {
-      try { await _storage.deleteAll(); } catch (_) {}
-      return false;
+      return null;
     }
   }
 }

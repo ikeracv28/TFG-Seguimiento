@@ -8,15 +8,31 @@ import '../../data/models/auth_models.dart';
  */
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
-  
+
   User? _user;
   bool _isLoading = false;
+  bool _sessionChecked = false;
   String? _errorMessage;
 
   User? get user => _user;
   bool get isLoading => _isLoading;
+  bool get sessionChecked => _sessionChecked;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _user != null;
+
+  /**
+   * Intenta restaurar la sesión al arrancar la app usando el token guardado.
+   * Si el token ya expiró el backend devuelve 401 y se limpia el storage.
+   */
+  Future<void> init() async {
+    _isLoading = true;
+    notifyListeners();
+
+    _user = await _authService.recuperarSesion();
+    _isLoading = false;
+    _sessionChecked = true;
+    notifyListeners();
+  }
 
   /**
    * Intenta iniciar sesión y actualiza el estado global.

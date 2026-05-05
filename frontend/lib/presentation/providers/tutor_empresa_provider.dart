@@ -44,6 +44,31 @@ class TutorEmpresaProvider extends ChangeNotifier {
       .where((s) => s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO')
       .length;
 
+  // Solo prácticas ACTIVAS para los stats principales (evita sumar convenios finalizados)
+  List<Practica> get _practicasActivas =>
+      _practicas.where((p) => p.estado == 'ACTIVA').toList();
+
+  // Horas aprobadas por la empresa en prácticas ACTIVAS
+  int get totalHorasValidadasEmpresa => _practicasActivas.fold(0, (sum, p) {
+        final segs = _todosSeguimientosPorPractica[p.id] ?? [];
+        return sum +
+            segs
+                .where((s) => s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO')
+                .fold(0, (s2, seg) => s2 + seg.horasRealizadas);
+      });
+
+  // Horas totales comprometidas solo en convenios ACTIVOS
+  int get totalHorasConvenio =>
+      _practicasActivas.fold(0, (sum, p) => sum + (p.horasTotales ?? 0));
+
+  // Horas que le quedan al alumno hasta completar el convenio activo
+  int get totalHorasRestantes =>
+      (totalHorasConvenio - totalHorasValidadasEmpresa).clamp(0, totalHorasConvenio);
+
+  // Seguimientos de una práctica concreta
+  List<Seguimiento> seguimientosDe(int practicaId) =>
+      _todosSeguimientosPorPractica[practicaId] ?? [];
+
   Future<void> cargar() async {
     _isLoading = true;
     _error = null;

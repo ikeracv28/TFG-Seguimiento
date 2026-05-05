@@ -11,18 +11,22 @@ import 'presentation/providers/tutor_centro_provider.dart';
 import 'presentation/providers/admin_provider.dart';
 import 'presentation/providers/chat_provider.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final authProvider = AuthProvider();
+  await authProvider.init();
+  runApp(MyApp(authProvider: authProvider));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthProvider authProvider;
+  const MyApp({super.key, required this.authProvider});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => PracticaProvider()),
         ChangeNotifierProvider(create: (_) => TutorEmpresaProvider()),
         ChangeNotifierProvider(create: (_) => TutorCentroProvider()),

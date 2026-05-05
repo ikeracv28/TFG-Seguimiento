@@ -6,7 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
  * Gestiona la URL base, timeouts e interceptores para seguridad.
  */
 class ApiClient {
-  static const String _baseUrl = 'http://localhost:8080/api/v1'; // Cambiar según entorno
+  static const String _baseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:8080/api/v1');
   final Dio _dio = Dio(BaseOptions(
     baseUrl: _baseUrl,
     connectTimeout: const Duration(seconds: 5),

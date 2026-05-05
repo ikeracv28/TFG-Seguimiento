@@ -23,4 +23,9 @@ public interface AuthService {
      * Invalida el token JWT activo añadiendo su JTI a la blacklist.
      */
     void logout(String token);
+
+    /**
+     * Devuelve los datos del usuario autenticado sin generar un nuevo token.
+     */
+    AuthResponse me(String email);
 }

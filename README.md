@@ -1,3 +1,4 @@
+[README.md](https://github.com/user-attachments/files/26867196/README.md)
 <div align="center">
 
 <img src="https://raw.githubusercontent.com/ikeracv28/Nexus-TFG/main/docs/logo.png" alt="Nexus Logo" width="120"/>
@@ -138,10 +139,9 @@ Nexus-TFG/
 │           └── screens/              # LoginScreen, DashboardScreen
 ├── docker-compose.yml
 ├── .env.example                      # Plantilla de variables de entorno
-├── ARQUITECTURA_API.md               # Documentación técnica de la API REST
-├── ERD_DATABASE.md                   # Modelo entidad-relación
-├── USUARIOS_PRUEBA.md                # Credenciales para probar la plataforma
-└── DESIGN_SYSTEM.md                  # Sistema de diseño Nexus
+├── ARQUITECTURA_API.md               # Contrato REST completo
+├── DESIGN_SYSTEM.md                  # Sistema de diseño Nexus
+└── BBDD-TFG.sql                      # Esquema de referencia (Flyway lo aplica automáticamente)
 ```
 
 ---
@@ -161,11 +161,12 @@ cd Nexus-TFG
 ### 2. Configurar variables de entorno
 ```bash
 cp .env.example .env
-# Edita .env con tus valores (o usa los valores de desarrollo por defecto)
+# Edita .env con tus valores (o deja los de ejemplo para desarrollo local)
 ```
 
-### 3. Levantar todo con Docker
+### 3. Construir e iniciar con Docker
 ```bash
+docker-compose build --no-cache
 docker-compose up -d
 ```
 
@@ -180,8 +181,6 @@ http://localhost:3000
 ```
 
 ### Usuarios de prueba
-
-Ver [USUARIOS_PRUEBA.md](USUARIOS_PRUEBA.md) para el listado completo de credenciales.
 
 | Rol | Email | Contraseña |
 |-----|-------|-----------|
@@ -236,9 +235,7 @@ Authorization: Bearer <token>
 
 ## Tests
 
-El proyecto cuenta con una batería de **121 tests** con JUnit 5 + MockMvc + Spring Security Test.
-
-Los tests verifican tanto los flujos correctos como los casos de acceso denegado:
+El proyecto cuenta con **121 tests** distribuidos en 18 clases, con JUnit 5 + MockMvc + Spring Security Test.
 
 ```bash
 cd backend/tfg-nexus-api
@@ -250,15 +247,21 @@ cd backend/tfg-nexus-api
 [INFO] BUILD SUCCESS
 ```
 
-Casos cubiertos:
-- Autenticación JWT (login, tokens inválidos, expiración)
-- Seguridad por roles: ALUMNO, TUTOR_CENTRO, TUTOR_EMPRESA, ADMIN
-- CRUD de prácticas con control de acceso
-- Flujo de seguimientos con doble validación
-- Módulo de ausencias y generación automática de incidencias
-- Chat/mensajes con WebSocket
-- Panel de administración (usuarios, audit log)
-- Tests OWASP: SQL injection, brute force, JWT tampering
+| Área | Clases | Tests |
+|------|--------|-------|
+| Controladores (Auth, Práctica, Admin, Chat) | 4 | 21 |
+| Seguridad OWASP (control de acceso, JWT, rate limit, CORS) | 4 | 30 |
+| Servicios (ausencias, incidencias, seguimientos, chat, admin) | 9 | 69 |
+| Persistencia de modelos | 1 | 1 |
+
+Casos destacados:
+- Doble validación de seguimientos (tutor empresa → tutor centro)
+- Control de acceso por rol en cada endpoint (`@PreAuthorize`)
+- Rate limiting: bloqueo tras N peticiones en ventana de tiempo
+- Cabeceras de seguridad HTTP (CSP, HSTS, X-Frame-Options)
+- JWT: expiración, firma inválida, token en lista negra
+- Propiedad de prácticas: un alumno no accede a prácticas ajenas
+- Flujo completo de ausencias: solicitud, aprobación y rechazo
 
 ---
 
@@ -296,29 +299,23 @@ Estilo visual: Notion/Linear. Sin Material azul genérico, inputs con borde fino
 - Docker Compose con los tres servicios
 
 ### ✅ Hito 3 — 75% (completado)
-- SeguimientoController con doble validación (empresa → centro)
-- IncidenciaController completo con generación automática
-- Módulo de ausencias (CRUD + validación)
-- Panel de administración: gestión de usuarios y audit log
 - Chat en tiempo real con WebSocket/STOMP
-- Seguridad avanzada: rate limiting, token blacklist, OWASP
-- 121 tests (integración + seguridad)
-- Pantallas Flutter por rol: alumno, tutor centro, tutor empresa, admin
+- Gestión de ausencias (solicitud, aprobación, rechazo)
+- Panel de administración con auditoría de acciones
+- Rate limiting y cabeceras de seguridad OWASP
+- Pantallas Flutter: chat, ausencias, administración
+- Navegación adaptativa (NavigationRail web / BottomNav móvil)
 
-### 🔄 Hito 4 — 100% (en desarrollo)
-- Contador de horas FCT acumuladas
-- Métricas del centro educativo
-- Notificaciones push
-- Pulido UI final y tests E2E
+### 🔄 Hito 4 — 100% (entrega final)
+- Pulido de la interfaz y corrección de errores
+- Tests de integración adicionales
+- Documentación final y memoria del TFG
 
 ---
 
-## Repositorios
+## Repositorio
 
-| Repositorio | Descripción |
-|-------------|-------------|
-| [Nexus-TFG](https://github.com/ikeracv28/Nexus-TFG) | Repositorio de desarrollo (este) |
-| [TFG-Seguimiento](https://github.com/ikeracv28/TFG-Seguimiento) | Repositorio limpio para entrega al profesor |
+Este es el repositorio de entrega oficial del TFG, mantenido limpio y sin artefactos de desarrollo.
 
 ---
 

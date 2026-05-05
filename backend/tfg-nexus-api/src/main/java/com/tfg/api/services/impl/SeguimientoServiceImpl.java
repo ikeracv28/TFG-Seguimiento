@@ -18,6 +18,8 @@ import com.tfg.api.services.SeguimientoService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,6 +71,21 @@ public class SeguimientoServiceImpl implements SeguimientoService {
     @Override
     @Transactional(readOnly = true)
     public List<SeguimientoResponse> listarPorPractica(Long practicaId) {
+        Practica practica = practicaRepository.findById(practicaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Práctica no encontrada"));
+
+        String email = currentUserEmail();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin
+                && !practica.getAlumno().getEmail().equals(email)
+                && !practica.getTutorCentro().getEmail().equals(email)
+                && !practica.getTutorEmpresa().getEmail().equals(email)) {
+            throw new AccessDeniedException("No tienes acceso a los seguimientos de esta práctica");
+        }
+
         return seguimientoRepository.findByPracticaIdOrderByFechaRegistroDesc(practicaId)
                 .stream()
                 .map(seguimientoMapper::toResponse)
@@ -92,6 +109,10 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         }
 
         String emailTutor = currentUserEmail();
+        if (!seguimiento.getPractica().getTutorEmpresa().getEmail().equals(emailTutor)) {
+            throw new AccessDeniedException("No tienes permiso para validar este parte");
+        }
+
         Usuario tutorEmpresa = usuarioRepository.findByEmail(emailTutor)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no identificado"));
 
@@ -124,6 +145,10 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         }
 
         String emailTutor = currentUserEmail();
+        if (!seguimiento.getPractica().getTutorCentro().getEmail().equals(emailTutor)) {
+            throw new AccessDeniedException("No tienes permiso para validar este parte");
+        }
+
         Usuario tutorCentro = usuarioRepository.findByEmail(emailTutor)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no identificado"));
 

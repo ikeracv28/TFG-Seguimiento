@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -50,5 +52,15 @@ public class AuthController {
         String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
         authService.logout(token);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Devuelve los datos del usuario autenticado a partir de su token JWT.
+     * Permite al cliente restaurar la sesión sin volver a introducir credenciales.
+     */
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(authService.me(userDetails.getUsername()));
     }
 }

@@ -16,6 +16,9 @@ import com.tfg.api.services.AusenciaService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -80,6 +83,21 @@ public class AusenciaServiceImpl implements AusenciaService {
     @Override
     @Transactional(readOnly = true)
     public List<AusenciaResponse> listarPorPractica(Long practicaId) {
+        Practica practica = practicaRepository.findById(practicaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Práctica no encontrada"));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin
+                && !practica.getAlumno().getEmail().equals(email)
+                && !practica.getTutorCentro().getEmail().equals(email)
+                && !practica.getTutorEmpresa().getEmail().equals(email)) {
+            throw new AccessDeniedException("No tienes acceso a las ausencias de esta práctica");
+        }
+
         return ausenciaMapper.toResponseList(
                 ausenciaRepository.findByPracticaIdOrderByFechaDesc(practicaId));
     }

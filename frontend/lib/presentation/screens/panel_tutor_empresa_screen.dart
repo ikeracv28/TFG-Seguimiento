@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/ausencia_model.dart';
+import '../../data/models/practica_model.dart';
 import '../../data/models/seguimiento_model.dart';
 import '../../data/services/ausencia_service.dart';
 import '../providers/auth_provider.dart';
@@ -19,6 +20,8 @@ class PanelTutorEmpresaScreen extends StatefulWidget {
 }
 
 class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
+  int _tab = 0; // 0 = pendientes, 1 = progreso
+
   @override
   void initState() {
     super.initState();
@@ -39,7 +42,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
           final isWide = constraints.maxWidth > 600;
           return Row(
             children: [
-              if (isWide) _Sidebar(auth: auth),
+              if (isWide) _Sidebar(auth: auth, tab: _tab, onTab: (t) => setState(() => _tab = t)),
               Expanded(child: _buildContent(auth, provider)),
             ],
           );
@@ -48,7 +51,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
       bottomNavigationBar: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth > 600) return const SizedBox.shrink();
-          return _MobileBar(auth: auth);
+          return _MobileBar(auth: auth, tab: _tab, onTab: (t) => setState(() => _tab = t));
         },
       ),
     );
@@ -76,166 +79,184 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
       );
     }
 
+    return RefreshIndicator(
+      onRefresh: () => context.read<TutorEmpresaProvider>().cargar(),
+      child: _tab == 0
+          ? _buildPendientes(auth, provider)
+          : _buildProgreso(provider),
+    );
+  }
+
+  // ── TAB 0: Partes pendientes ───────────────────────────────────────────────
+
+  Widget _buildPendientes(AuthProvider auth, TutorEmpresaProvider provider) {
     final pendientes = provider.todosPendientes;
     final ausenciasPendientes = provider.ausenciasPendientes;
     final empresa = provider.practicas.isNotEmpty
         ? provider.practicas.first.empresaNombre
         : '';
 
-    return RefreshIndicator(
-      onRefresh: () => context.read<TutorEmpresaProvider>().cargar(),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Cabecera ──────────────────────────────────────────────────
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Partes pendientes',
-                          style: NexusText.heading2
-                              .copyWith(letterSpacing: -0.3)),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${auth.user?.nombreCompleto ?? ''} · $empresa',
-                        style: NexusText.body
-                            .copyWith(color: NexusColors.inkSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-                _RefreshBtn(
-                    onPressed: () =>
-                        context.read<TutorEmpresaProvider>().cargar()),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // ── Stats ──────────────────────────────────────────────────────
-            Row(
-              children: [
-                _StatTile(
-                  value: '${pendientes.length}',
-                  label: 'Pendientes',
-                  accent: NexusColors.warning,
-                  bg: NexusColors.warningLight,
-                  labelColor: NexusColors.warningText,
-                ),
-                const SizedBox(width: 10),
-                _StatTile(
-                  value: '${provider.totalValidados}',
-                  label: 'Procesados',
-                  accent: NexusColors.success,
-                  bg: NexusColors.successLight,
-                  labelColor: NexusColors.successText,
-                ),
-                const SizedBox(width: 10),
-                _StatTile(
-                  value: '${provider.totalHoras}h',
-                  label: 'Horas totales',
-                  accent: NexusColors.inkSecondary,
-                  bg: const Color(0xFFF1EFE8),
-                  labelColor: NexusColors.inkSecondary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-
-            // ── Contenido principal ────────────────────────────────────────
-            if (pendientes.isEmpty && ausenciasPendientes.isEmpty)
-              _EmptyCard()
-            else ...[
-              // Partes de seguimiento pendientes
-              if (pendientes.isNotEmpty) ...[
-                Text(
-                  'FIRMA PENDIENTE',
-                  style: NexusText.label.copyWith(
-                    color: NexusColors.inkTertiary,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ...pendientes.asMap().entries.map((e) {
-                  final practica =
-                      provider.practicaDe(e.value.practicaId);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _ParteCard(
-                      seguimiento: e.value,
-                      alumnoNombre: practica?.alumnoNombre ?? 'Alumno',
-                      onValidar: () => _confirmarValidar(e.value.id),
-                      onRechazar: () => _mostrarModalRechazo(e.value.id),
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Cabecera ──────────────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Partes pendientes',
+                        style: NexusText.heading2.copyWith(letterSpacing: -0.3)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${auth.user?.nombreCompleto ?? ''} · $empresa',
+                      style: NexusText.body.copyWith(color: NexusColors.inkSecondary),
                     ),
-                  );
-                }),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: NexusColors.primaryLight,
-                    border: Border.all(
-                        color: const Color(0xFFB5D4F4), width: 0.5),
-                    borderRadius:
-                        BorderRadius.circular(NexusSizes.radiusMD),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline,
-                          size: 14, color: NexusColors.primaryText),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Al rechazar deberás indicar el motivo. El tutor del centro será notificado.',
-                          style: NexusText.small
-                              .copyWith(color: NexusColors.primaryText),
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
-              // Ausencias pendientes
-              if (ausenciasPendientes.isNotEmpty) ...[
-                if (pendientes.isNotEmpty) const SizedBox(height: 28),
-                Text(
-                  'AUSENCIAS PENDIENTES · ${ausenciasPendientes.length}',
-                  style: NexusText.label.copyWith(
-                    color: NexusColors.inkTertiary,
-                    letterSpacing: 1.2,
+              ),
+              _RefreshBtn(onPressed: () => context.read<TutorEmpresaProvider>().cargar()),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // ── Stats ──────────────────────────────────────────────────────
+          Row(
+            children: [
+              _StatTile(
+                value: '${pendientes.length}',
+                label: 'Pendientes',
+                accent: NexusColors.warning,
+                bg: NexusColors.warningLight,
+                labelColor: NexusColors.warningText,
+              ),
+              const SizedBox(width: 10),
+              _StatTile(
+                value: '${provider.totalHorasValidadasEmpresa}h',
+                label: 'Horas validadas',
+                accent: NexusColors.success,
+                bg: NexusColors.successLight,
+                labelColor: NexusColors.successText,
+              ),
+              const SizedBox(width: 10),
+              _StatTile(
+                value: provider.totalHorasConvenio > 0
+                    ? '${provider.totalHorasRestantes}h'
+                    : '—',
+                label: 'Horas restantes',
+                accent: NexusColors.inkSecondary,
+                bg: const Color(0xFFF1EFE8),
+                labelColor: NexusColors.inkSecondary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+
+          // ── Contenido principal ────────────────────────────────────────
+          if (pendientes.isEmpty && ausenciasPendientes.isEmpty)
+            _EmptyCard()
+          else ...[
+            if (pendientes.isNotEmpty) ...[
+              Text(
+                'FIRMA PENDIENTE',
+                style: NexusText.label.copyWith(
+                    color: NexusColors.inkTertiary, letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 10),
+              ...pendientes.map((s) {
+                final practica = provider.practicaDe(s.practicaId);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _ParteCard(
+                    seguimiento: s,
+                    alumnoNombre: practica?.alumnoNombre ?? 'Alumno',
+                    onValidar: () => _confirmarValidar(s.id),
+                    onRechazar: () => _mostrarModalRechazo(s.id),
                   ),
-                ),
-                const SizedBox(height: 10),
-                ...ausenciasPendientes.map((ausencia) {
-                  final practica = provider.practicaDe(ausencia.practicaId);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _AusenciaEmpresaCard(
-                      ausencia: ausencia,
-                      alumnoNombre: practica?.alumnoNombre ?? 'Alumno',
-                      onJustificar: () =>
-                          _revisarAusencia(ausencia.id, 'JUSTIFICADA'),
-                      onInjustificar: () =>
-                          _revisarAusencia(ausencia.id, 'INJUSTIFICADA'),
-                      onVerJustificante: ausencia.tieneJustificante
-                          ? () => _verJustificante(ausencia.id)
-                          : null,
-                    ),
-                  );
-                }),
-              ],
+                );
+              }),
+              const SizedBox(height: 4),
+              _InfoBanner(
+                  text: 'Al rechazar deberás indicar el motivo. El tutor del centro será notificado.'),
+            ],
+            if (ausenciasPendientes.isNotEmpty) ...[
+              if (pendientes.isNotEmpty) const SizedBox(height: 28),
+              Text(
+                'AUSENCIAS PENDIENTES · ${ausenciasPendientes.length}',
+                style: NexusText.label.copyWith(
+                    color: NexusColors.inkTertiary, letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 10),
+              ...ausenciasPendientes.map((ausencia) {
+                final practica = provider.practicaDe(ausencia.practicaId);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _AusenciaEmpresaCard(
+                    ausencia: ausencia,
+                    alumnoNombre: practica?.alumnoNombre ?? 'Alumno',
+                    onJustificar: () => _revisarAusencia(ausencia.id, 'JUSTIFICADA'),
+                    onInjustificar: () => _revisarAusencia(ausencia.id, 'INJUSTIFICADA'),
+                    onVerJustificante: ausencia.tieneJustificante
+                        ? () => _verJustificante(ausencia.id)
+                        : null,
+                  ),
+                );
+              }),
             ],
           ],
-        ),
+        ],
       ),
     );
   }
+
+  // ── TAB 1: Progreso del alumno ─────────────────────────────────────────────
+
+  Widget _buildProgreso(TutorEmpresaProvider provider) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Progreso del alumno',
+                        style: NexusText.heading2.copyWith(letterSpacing: -0.3)),
+                    const SizedBox(height: 4),
+                    Text('Seguimiento de horas y estado del convenio',
+                        style: NexusText.body.copyWith(color: NexusColors.inkSecondary)),
+                  ],
+                ),
+              ),
+              _RefreshBtn(onPressed: () => context.read<TutorEmpresaProvider>().cargar()),
+            ],
+          ),
+          const SizedBox(height: 28),
+          if (provider.practicas.isEmpty)
+            _EmptyCard()
+          else
+            ...provider.practicas.map((p) {
+              final seguimientos = provider.seguimientosDe(p.id);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: _ProgresoCard(practica: p, seguimientos: seguimientos),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  // ── Acciones ───────────────────────────────────────────────────────────────
 
   Future<void> _confirmarValidar(int id) async {
     final confirmar = await showDialog<bool>(
@@ -249,8 +270,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancelar')),
           FilledButton(
-            style:
-                FilledButton.styleFrom(backgroundColor: NexusColors.success),
+            style: FilledButton.styleFrom(backgroundColor: NexusColors.success),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Validar y firmar'),
           ),
@@ -262,8 +282,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
     final ok = await context.read<TutorEmpresaProvider>().validar(id);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-            ok ? 'Parte validado correctamente' : 'Error al validar el parte'),
+        content: Text(ok ? 'Parte validado correctamente' : 'Error al validar el parte'),
         backgroundColor: ok ? NexusColors.success : NexusColors.danger,
       ));
     }
@@ -301,8 +320,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
               child: const Text('Cancelar')),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor:
-                    esJustificada ? NexusColors.success : NexusColors.danger),
+                backgroundColor: esJustificada ? NexusColors.success : NexusColors.danger),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(esJustificada ? 'Justificar' : 'Injustificar'),
           ),
@@ -311,9 +329,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
     );
     if (confirmar != true || !mounted) return;
 
-    final ok = await context
-        .read<TutorEmpresaProvider>()
-        .justificarAusencia(id, tipo);
+    final ok = await context.read<TutorEmpresaProvider>().justificarAusencia(id, tipo);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok
@@ -335,14 +351,12 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
         isScrollControlled: true,
         backgroundColor: NexusColors.surface,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(NexusSizes.radiusLG)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(NexusSizes.radiusLG)),
         ),
         builder: (ctx) => Padding(
           padding: EdgeInsets.fromLTRB(
-            24, 24, 24,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
+              24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
           child: Form(
             key: formKey,
             child: Column(
@@ -353,8 +367,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                 const SizedBox(height: 6),
                 Text(
                   'El alumno recibirá una incidencia automática con el motivo indicado.',
-                  style:
-                      NexusText.body.copyWith(color: NexusColors.inkSecondary),
+                  style: NexusText.body.copyWith(color: NexusColors.inkSecondary),
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -365,9 +378,8 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                     hintText: 'Describe qué debe corregir el alumno...',
                     alignLabelWithHint: true,
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'El motivo es obligatorio'
-                      : null,
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'El motivo es obligatorio' : null,
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -390,14 +402,12 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                               .read<TutorEmpresaProvider>()
                               .rechazar(id, motivoController.text.trim());
                           if (mounted) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(SnackBar(
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                               content: Text(ok
                                   ? 'Parte rechazado. Se notificará al alumno.'
                                   : 'Error al rechazar el parte'),
-                              backgroundColor: ok
-                                  ? NexusColors.warning
-                                  : NexusColors.danger,
+                              backgroundColor:
+                                  ok ? NexusColors.warning : NexusColors.danger,
                             ));
                           }
                         },
@@ -417,11 +427,234 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
   }
 }
 
+// ── Progreso card ──────────────────────────────────────────────────────────────
+
+class _ProgresoCard extends StatelessWidget {
+  final Practica practica;
+  final List<Seguimiento> seguimientos;
+
+  const _ProgresoCard({required this.practica, required this.seguimientos});
+
+  @override
+  Widget build(BuildContext context) {
+    final horasValidadas = seguimientos
+        .where((s) => s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO')
+        .fold(0, (sum, s) => sum + s.horasRealizadas);
+    final horasRegistradas = seguimientos.fold(0, (sum, s) => sum + s.horasRealizadas);
+    final horasTotales = practica.horasTotales ?? 0;
+    final horasRestantes = (horasTotales - horasValidadas).clamp(0, horasTotales);
+    final progreso = horasTotales > 0 ? (horasValidadas / horasTotales).clamp(0.0, 1.0) : 0.0;
+    final pct = (progreso * 100).round();
+
+    final fmt = DateFormat('d MMM yyyy', 'es_ES');
+    final inicio = practica.fechaInicio != null ? fmt.format(practica.fechaInicio!) : '—';
+    final fin = practica.fechaFin != null ? fmt.format(practica.fechaFin!) : '—';
+
+    final initials = practica.alumnoNombre
+        .trim()
+        .split(' ')
+        .where((p) => p.isNotEmpty)
+        .take(2)
+        .map((p) => p[0].toUpperCase())
+        .join();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: NexusColors.surface,
+        borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
+        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Cabecera alumno ───────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+            decoration: const BoxDecoration(
+              border: Border(
+                  bottom: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: NexusColors.primaryLight,
+                  child: Text(initials,
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600,
+                          color: NexusColors.primaryText)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(practica.alumnoNombre,
+                          style: NexusText.body.copyWith(fontWeight: FontWeight.w600)),
+                      Text('${practica.codigo} · ${practica.empresaNombre}',
+                          style: NexusText.small.copyWith(color: NexusColors.inkSecondary)),
+                    ],
+                  ),
+                ),
+                _EstadoPill(estado: practica.estado),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Fechas ───────────────────────────────────────────────
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined,
+                        size: 13, color: NexusColors.inkSecondary),
+                    const SizedBox(width: 6),
+                    Text('$inicio  →  $fin',
+                        style: NexusText.small.copyWith(color: NexusColors.inkSecondary)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // ── Barra de progreso ────────────────────────────────────
+                Row(
+                  children: [
+                    Text('Progreso del convenio',
+                        style: NexusText.small.copyWith(fontWeight: FontWeight.w500)),
+                    const Spacer(),
+                    Text('$pct%',
+                        style: NexusText.small.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: _colorProgreso(pct))),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                  child: LinearProgressIndicator(
+                    value: progreso,
+                    minHeight: 8,
+                    backgroundColor: NexusColors.surfaceAlt,
+                    valueColor: AlwaysStoppedAnimation(_colorProgreso(pct)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Desglose de horas ────────────────────────────────────
+                Row(
+                  children: [
+                    _HorasStat(
+                      label: 'Registradas\npor el alumno',
+                      value: '${horasRegistradas}h',
+                      color: NexusColors.inkSecondary,
+                    ),
+                    _Divider(),
+                    _HorasStat(
+                      label: 'Validadas\npor ti',
+                      value: '${horasValidadas}h',
+                      color: NexusColors.success,
+                    ),
+                    _Divider(),
+                    _HorasStat(
+                      label: 'Restantes\ndel convenio',
+                      value: horasTotales > 0 ? '${horasRestantes}h' : '—',
+                      color: horasRestantes == 0 && horasTotales > 0
+                          ? NexusColors.success
+                          : NexusColors.warning,
+                    ),
+                    if (horasTotales > 0) ...[
+                      _Divider(),
+                      _HorasStat(
+                        label: 'Total\ndel convenio',
+                        value: '${horasTotales}h',
+                        color: NexusColors.inkTertiary,
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _colorProgreso(int pct) {
+    if (pct >= 100) return NexusColors.success;
+    if (pct >= 60) return NexusColors.primary;
+    return NexusColors.warning;
+  }
+}
+
+class _HorasStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _HorasStat({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value,
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w700,
+                  color: color, letterSpacing: -0.5)),
+          const SizedBox(height: 4),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10, color: NexusColors.inkSecondary, height: 1.3)),
+        ],
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: 36, color: NexusColors.border, margin: const EdgeInsets.symmetric(horizontal: 4));
+  }
+}
+
+class _EstadoPill extends StatelessWidget {
+  final String estado;
+  const _EstadoPill({required this.estado});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (estado) {
+      'ACTIVA'     => ('Activa', NexusColors.success),
+      'FINALIZADA' => ('Finalizada', NexusColors.inkSecondary),
+      _            => ('Borrador', NexusColors.warning),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withAlpha(26),
+        borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+        border: Border.all(color: color.withAlpha(77), width: 0.5),
+      ),
+      child: Text(label,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+    );
+  }
+}
+
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 
 class _Sidebar extends StatelessWidget {
   final AuthProvider auth;
-  const _Sidebar({required this.auth});
+  final int tab;
+  final ValueChanged<int> onTab;
+  const _Sidebar({required this.auth, required this.tab, required this.onTab});
 
   @override
   Widget build(BuildContext context) {
@@ -431,8 +664,7 @@ class _Sidebar extends StatelessWidget {
       decoration: const BoxDecoration(
         color: NexusColors.surface,
         border: Border(
-            right: BorderSide(
-                color: NexusColors.border, width: NexusSizes.borderWidth)),
+            right: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
       ),
       child: Column(
         children: [
@@ -447,18 +679,18 @@ class _Sidebar extends StatelessWidget {
             child: const Icon(Icons.star_outline, size: 13, color: Colors.white),
           ),
           const SizedBox(height: 10),
-          Tooltip(
-            message: 'Partes pendientes',
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: NexusColors.successLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.list_alt_outlined,
-                  size: 17, color: NexusColors.success),
-            ),
+          _NavItem(
+            icon: Icons.list_alt_outlined,
+            tooltip: 'Partes pendientes',
+            selected: tab == 0,
+            onTap: () => onTab(0),
+          ),
+          const SizedBox(height: 6),
+          _NavItem(
+            icon: Icons.bar_chart_rounded,
+            tooltip: 'Progreso del alumno',
+            selected: tab == 1,
+            onTap: () => onTab(1),
           ),
           const Spacer(),
           Tooltip(
@@ -468,8 +700,7 @@ class _Sidebar extends StatelessWidget {
               backgroundColor: NexusColors.successLight,
               child: Text(initials,
                   style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 11, fontWeight: FontWeight.w600,
                       color: NexusColors.successText)),
             ),
           ),
@@ -481,8 +712,7 @@ class _Sidebar extends StatelessWidget {
               icon: const Icon(Icons.logout_outlined,
                   size: 18, color: NexusColors.inkSecondary),
               padding: EdgeInsets.zero,
-              constraints:
-                  const BoxConstraints(minWidth: 34, minHeight: 34),
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
             ),
           ),
           const SizedBox(height: 8),
@@ -492,11 +722,39 @@ class _Sidebar extends StatelessWidget {
   }
 
   String _getInitials(String nombre) {
-    final parts =
-        nombre.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    final parts = nombre.trim().split(' ').where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final bool selected;
+  final VoidCallback onTap;
+  const _NavItem({required this.icon, required this.tooltip, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: selected ? NexusColors.successLight : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon,
+              size: 17,
+              color: selected ? NexusColors.success : NexusColors.inkSecondary),
+        ),
+      ),
+    );
   }
 }
 
@@ -504,43 +762,93 @@ class _Sidebar extends StatelessWidget {
 
 class _MobileBar extends StatelessWidget {
   final AuthProvider auth;
-  const _MobileBar({required this.auth});
+  final int tab;
+  final ValueChanged<int> onTab;
+  const _MobileBar({required this.auth, required this.tab, required this.onTab});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         color: NexusColors.surface,
-        border: Border(
-            top: BorderSide(
-                color: NexusColors.border, width: NexusSizes.borderWidth)),
+        border: Border(top: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: NexusColors.success,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child:
-                const Icon(Icons.star_outline, size: 12, color: Colors.white),
+          GestureDetector(
+            onTap: () => onTab(0),
+            child: _MobileTab(
+                icon: Icons.list_alt_outlined,
+                label: 'Pendientes',
+                selected: tab == 0),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text('Partes pendientes',
-                style:
-                    NexusText.small.copyWith(fontWeight: FontWeight.w500)),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => onTab(1),
+            child: _MobileTab(
+                icon: Icons.bar_chart_rounded,
+                label: 'Progreso',
+                selected: tab == 1),
           ),
+          const Spacer(),
           TextButton.icon(
             onPressed: () => auth.logout(),
             icon: const Icon(Icons.logout_outlined,
                 size: 16, color: NexusColors.inkSecondary),
             label: Text('Salir',
-                style: NexusText.small
-                    .copyWith(color: NexusColors.inkSecondary)),
+                style: NexusText.small.copyWith(color: NexusColors.inkSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileTab extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  const _MobileTab({required this.icon, required this.label, required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16,
+            color: selected ? NexusColors.success : NexusColors.inkSecondary),
+        const SizedBox(width: 4),
+        Text(label,
+            style: NexusText.small.copyWith(
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected ? NexusColors.success : NexusColors.inkSecondary)),
+      ],
+    );
+  }
+}
+
+// ── Info banner ────────────────────────────────────────────────────────────────
+
+class _InfoBanner extends StatelessWidget {
+  final String text;
+  const _InfoBanner({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: NexusColors.primaryLight,
+        border: Border.all(color: const Color(0xFFB5D4F4), width: 0.5),
+        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 14, color: NexusColors.primaryText),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: NexusText.small.copyWith(color: NexusColors.primaryText)),
           ),
         ],
       ),
@@ -565,8 +873,7 @@ class _RefreshBtn extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            border: Border.all(
-                color: NexusColors.border, width: NexusSizes.borderWidth),
+            border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.refresh_rounded,
@@ -598,8 +905,7 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
@@ -610,13 +916,10 @@ class _StatTile extends StatelessWidget {
           children: [
             Text(value,
                 style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: accent,
-                    letterSpacing: -0.5)),
+                    fontSize: 22, fontWeight: FontWeight.w600,
+                    color: accent, letterSpacing: -0.5)),
             const SizedBox(height: 2),
-            Text(label,
-                style: TextStyle(fontSize: 11, color: labelColor)),
+            Text(label, style: TextStyle(fontSize: 11, color: labelColor)),
           ],
         ),
       ),
@@ -641,8 +944,7 @@ class _ParteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fecha = DateFormat('d MMM yyyy', 'es_ES')
-        .format(seguimiento.fechaRegistro);
+    final fecha = DateFormat('d MMM yyyy', 'es_ES').format(seguimiento.fechaRegistro);
     final initials = alumnoNombre
         .trim()
         .split(' ')
@@ -655,27 +957,19 @@ class _ParteCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: NexusColors.surface,
         borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
-        border: Border.all(
-            color: NexusColors.border, width: NexusSizes.borderWidth),
+        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Cabecera de la card ───────────────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             decoration: const BoxDecoration(
               border: Border(
-                  bottom: BorderSide(
-                      color: NexusColors.border,
-                      width: NexusSizes.borderWidth)),
+                  bottom: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
             ),
             child: Row(
               children: [
@@ -684,8 +978,7 @@ class _ParteCard extends StatelessWidget {
                   backgroundColor: NexusColors.primaryLight,
                   child: Text(initials,
                       style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 11, fontWeight: FontWeight.w600,
                           color: NexusColors.primaryText)),
                 ),
                 const SizedBox(width: 10),
@@ -694,11 +987,9 @@ class _ParteCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(alumnoNombre,
-                          style: NexusText.small
-                              .copyWith(fontWeight: FontWeight.w600)),
+                          style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
                       Text(fecha,
-                          style: NexusText.caption.copyWith(
-                              color: NexusColors.inkSecondary)),
+                          style: NexusText.caption.copyWith(color: NexusColors.inkSecondary)),
                     ],
                   ),
                 ),
@@ -708,10 +999,7 @@ class _ParteCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // ── Descripción ───────────────────────────────────────────────
-          if (seguimiento.descripcion != null &&
-              seguimiento.descripcion!.isNotEmpty)
+          if (seguimiento.descripcion != null && seguimiento.descripcion!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Container(
@@ -719,26 +1007,18 @@ class _ParteCard extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: NexusColors.surfaceAlt,
-                  borderRadius:
-                      BorderRadius.circular(NexusSizes.radiusSM),
-                  border: const Border(
-                    left: BorderSide(
-                        color: NexusColors.border, width: 3),
-                  ),
+                  borderRadius: BorderRadius.circular(NexusSizes.radiusSM),
+                  border: const Border(left: BorderSide(color: NexusColors.border, width: 3)),
                 ),
                 child: Text(
                   '"${seguimiento.descripcion}"',
                   style: NexusText.body.copyWith(
-                    color: NexusColors.inkSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
+                      color: NexusColors.inkSecondary, fontStyle: FontStyle.italic),
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
-
-          // ── Acciones ──────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -748,13 +1028,11 @@ class _ParteCard extends StatelessWidget {
                     onPressed: onRechazar,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: NexusColors.danger,
-                      side: const BorderSide(
-                          color: NexusColors.danger, width: 0.5),
+                      side: const BorderSide(color: NexusColors.danger, width: 0.5),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     child: const Text('Rechazar',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500)),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -764,8 +1042,7 @@ class _ParteCard extends StatelessWidget {
                     onPressed: onValidar,
                     icon: const Icon(Icons.draw_outlined, size: 15),
                     label: const Text('Validar y firmar',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500)),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                     style: FilledButton.styleFrom(
                       backgroundColor: NexusColors.success,
                       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -781,7 +1058,7 @@ class _ParteCard extends StatelessWidget {
   }
 }
 
-// ── Ausencia empresa card ──────────────────────────────────────────────────────
+// ── Ausencia card ──────────────────────────────────────────────────────────────
 
 class _AusenciaEmpresaCard extends StatelessWidget {
   final Ausencia ausencia;
@@ -813,27 +1090,19 @@ class _AusenciaEmpresaCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: NexusColors.surface,
         borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
-        border: Border.all(
-            color: NexusColors.border, width: NexusSizes.borderWidth),
+        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cabecera
           Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             decoration: const BoxDecoration(
               border: Border(
-                  bottom: BorderSide(
-                      color: NexusColors.border,
-                      width: NexusSizes.borderWidth)),
+                  bottom: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
             ),
             child: Row(
               children: [
@@ -842,8 +1111,7 @@ class _AusenciaEmpresaCard extends StatelessWidget {
                   backgroundColor: NexusColors.warningLight,
                   child: Text(initials,
                       style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 11, fontWeight: FontWeight.w600,
                           color: NexusColors.warningText)),
                 ),
                 const SizedBox(width: 10),
@@ -852,11 +1120,9 @@ class _AusenciaEmpresaCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(alumnoNombre,
-                          style: NexusText.small
-                              .copyWith(fontWeight: FontWeight.w600)),
+                          style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
                       Text(fecha,
-                          style: NexusText.caption
-                              .copyWith(color: NexusColors.inkSecondary)),
+                          style: NexusText.caption.copyWith(color: NexusColors.inkSecondary)),
                     ],
                   ),
                 ),
@@ -864,26 +1130,20 @@ class _AusenciaEmpresaCard extends StatelessWidget {
                   GestureDetector(
                     onTap: onVerJustificante,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: NexusColors.successLight,
-                        borderRadius:
-                            BorderRadius.circular(NexusSizes.radiusFull),
-                        border: Border.all(
-                            color: NexusColors.success.withAlpha(60),
-                            width: 0.5),
+                        borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                        border: Border.all(color: NexusColors.success.withAlpha(60), width: 0.5),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.open_in_new,
-                              size: 11, color: NexusColors.successText),
+                          Icon(Icons.open_in_new, size: 11, color: NexusColors.successText),
                           SizedBox(width: 3),
                           Text('Ver justificante',
                               style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11, fontWeight: FontWeight.w500,
                                   color: NexusColors.successText)),
                         ],
                       ),
@@ -895,7 +1155,6 @@ class _AusenciaEmpresaCard extends StatelessWidget {
               ],
             ),
           ),
-          // Motivo
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Container(
@@ -904,20 +1163,13 @@ class _AusenciaEmpresaCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: NexusColors.surfaceAlt,
                 borderRadius: BorderRadius.circular(NexusSizes.radiusSM),
-                border: const Border(
-                  left: BorderSide(color: NexusColors.warning, width: 3),
-                ),
+                border: const Border(left: BorderSide(color: NexusColors.warning, width: 3)),
               ),
-              child: Text(
-                ausencia.motivo,
-                style: NexusText.body
-                    .copyWith(color: NexusColors.inkSecondary),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
+              child: Text(ausencia.motivo,
+                  style: NexusText.body.copyWith(color: NexusColors.inkSecondary),
+                  maxLines: 3, overflow: TextOverflow.ellipsis),
             ),
           ),
-          // Acciones
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -927,13 +1179,11 @@ class _AusenciaEmpresaCard extends StatelessWidget {
                     onPressed: onInjustificar,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: NexusColors.danger,
-                      side: const BorderSide(
-                          color: NexusColors.danger, width: 0.5),
+                      side: const BorderSide(color: NexusColors.danger, width: 0.5),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     child: const Text('Injustificada',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500)),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -943,8 +1193,7 @@ class _AusenciaEmpresaCard extends StatelessWidget {
                     onPressed: onJustificar,
                     icon: const Icon(Icons.check_circle_outline, size: 15),
                     label: const Text('Justificada',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500)),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                     style: FilledButton.styleFrom(
                       backgroundColor: NexusColors.success,
                       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -970,8 +1219,7 @@ class _EmptyCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 48),
       decoration: BoxDecoration(
         color: NexusColors.surface,
-        border: Border.all(
-            color: NexusColors.border, width: NexusSizes.borderWidth),
+        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
         borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
       ),
       child: Column(
@@ -979,19 +1227,15 @@ class _EmptyCard extends StatelessWidget {
           Container(
             width: 56,
             height: 56,
-            decoration: BoxDecoration(
-              color: NexusColors.successLight,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.check_rounded,
-                size: 28, color: NexusColors.success),
+            decoration: const BoxDecoration(
+                color: NexusColors.successLight, shape: BoxShape.circle),
+            child: const Icon(Icons.check_rounded, size: 28, color: NexusColors.success),
           ),
           const SizedBox(height: 16),
           Text('Todo al día', style: NexusText.heading3),
           const SizedBox(height: 6),
           Text('No hay partes pendientes de firma.',
-              style:
-                  NexusText.body.copyWith(color: NexusColors.inkSecondary)),
+              style: NexusText.body.copyWith(color: NexusColors.inkSecondary)),
         ],
       ),
     );
@@ -1014,8 +1258,7 @@ class _HoursPill extends StatelessWidget {
       ),
       child: Text('${hours}h',
           style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontSize: 11, fontWeight: FontWeight.w600,
               color: NexusColors.inkSecondary)),
     );
   }
@@ -1036,8 +1279,7 @@ class _StatusPill extends StatelessWidget {
         border: Border.all(color: color.withAlpha(77), width: 0.5),
       ),
       child: Text(label,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
     );
   }
 }

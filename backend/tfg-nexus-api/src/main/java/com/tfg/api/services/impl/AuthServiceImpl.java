@@ -107,11 +107,19 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String token) {
         try {
             String jti = jwtUtils.extractJti(token);
-            tokenBlacklistService.revocar(jti);
+            long expirationMs = jwtUtils.extractExpiration(token).getTime();
+            tokenBlacklistService.revocar(jti, expirationMs);
             log.info("LOGOUT_EXITOSO jti={}", jti);
         } catch (Exception e) {
             log.warn("LOGOUT_TOKEN_INVALIDO motivo={}", e.getMessage());
         }
+    }
+
+    @Override
+    public AuthResponse me(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        return usuarioMapper.toAuthResponse(usuario, null);
     }
 
     private void validarUnicidad(RegisterRequest request) {

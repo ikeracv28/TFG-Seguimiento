@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -60,5 +61,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    @Scheduled(fixedDelay = 3_600_000)
+    public void limpiarVentanasExpiradas() {
+        long ahora = System.currentTimeMillis();
+        buckets.entrySet().removeIf(e -> ahora - e.getValue()[1] >= WINDOW_MS);
     }
 }

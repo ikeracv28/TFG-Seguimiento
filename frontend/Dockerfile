@@ -45,6 +45,8 @@ WORKDIR /app
 # ARG que permite invalidar el caché del código fuente sin re-clonar Flutter.
 # Uso: docker compose build --build-arg CACHE_DATE=$(date +%s) frontend
 ARG CACHE_DATE=default
+# URL del backend — inyectada en tiempo de compilación vía --dart-define
+ARG API_URL=http://localhost:8080/api/v1
 
 # 6. Copiamos todo el código fuente del frontend al contenedor
 COPY . .
@@ -53,7 +55,7 @@ COPY . .
 RUN flutter pub get
 
 # 8. Compilamos la aplicación para web en modo release (optimizado)
-RUN flutter build web --release
+RUN flutter build web --release --dart-define=API_URL=$API_URL
 
 # -------------------------------------------------------------------------
 # ETAPA 2: RUNTIME (Servidor Web)
