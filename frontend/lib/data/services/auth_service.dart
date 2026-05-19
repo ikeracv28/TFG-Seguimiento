@@ -60,10 +60,15 @@ class AuthService {
       final token = await _storage.read(key: 'jwt_token');
       if (token == null) return null;
 
-      final response = await _apiClient.dio.get('/auth/me');
+      // Pasamos el token directamente para no depender del interceptor en este caso crítico
+      final response = await _apiClient.dio.get(
+        '/auth/me',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
       return User.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 403) {
         try { await _storage.deleteAll(); } catch (_) {}
       }
       return null;

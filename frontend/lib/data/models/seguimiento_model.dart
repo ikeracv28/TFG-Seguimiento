@@ -6,9 +6,10 @@ class Seguimiento {
   final int id;
   final int practicaId;
   final DateTime fechaRegistro;
-  final int horasRealizadas;
+  final double horasRealizadas;
   final String? descripcion;
   final String estado;
+  final String tipo; // 'DIARIO' o 'SEMANAL'
   final int? validadoPorId;
   final String? validadoPorNombre;
   final String? comentarioTutor;
@@ -21,6 +22,7 @@ class Seguimiento {
     required this.horasRealizadas,
     this.descripcion,
     required this.estado,
+    this.tipo = 'DIARIO',
     this.validadoPorId,
     this.validadoPorNombre,
     this.comentarioTutor,
@@ -32,15 +34,18 @@ class Seguimiento {
       id: json['id'],
       practicaId: json['practicaId'],
       fechaRegistro: DateTime.parse(json['fechaRegistro']),
-      horasRealizadas: json['horasRealizadas'],
+      horasRealizadas: (json['horasRealizadas'] as num).toDouble(),
       descripcion: json['descripcion'],
       estado: json['estado'] ?? 'PENDIENTE_EMPRESA',
+      tipo: json['tipo'] ?? 'DIARIO',
       validadoPorId: json['validadoPorId'],
       validadoPorNombre: json['validadoPorNombre'],
       comentarioTutor: json['comentarioTutor'],
       fechaCreacion: DateTime.parse(json['fechaCreacion']),
     );
   }
+
+  bool get esSemanal => tipo == 'SEMANAL';
 
   /// Devuelve true si las horas de este parte cuentan para el progreso.
   bool get cuentaParaProgreso => estado == 'COMPLETADO';

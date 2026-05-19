@@ -111,15 +111,82 @@ class PracticaControllerTest {
     @DisplayName("ADMIN debe poder cambiar el estado de una práctica")
     @WithMockUser(roles = "ADMIN")
     void admin_should_change_status() throws Exception {
-        // Arrange
         PracticaResponse response = new PracticaResponse(1L, "P-001", 1L, "A", 2L, "B", 3L, "C", 4L, "D", null, null, 0, "ACTIVA", null);
         when(practicaService.cambiarEstado(eq(1L), eq("ACTIVA"))).thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(patch("/api/v1/practicas/1/estado")
                 .with(csrf())
                 .param("nuevoEstado", "ACTIVA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("ACTIVA"));
+    }
+
+    @Test
+    @DisplayName("ALUMNO puede obtener su práctica activa vía /me")
+    @WithMockUser(roles = "ALUMNO")
+    void alumno_obtiene_su_practica_activa() throws Exception {
+        PracticaResponse response = new PracticaResponse(1L, "P-001", 1L, "Alumno Test", 2L, "B", 3L, "C", 4L, "D",
+                null, null, 300, "ACTIVA", null);
+        when(practicaService.obtenerPracticaActivaDelAlumno()).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/practicas/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("ACTIVA"));
+    }
+
+    @Test
+    @DisplayName("TUTOR_EMPRESA puede listar sus prácticas asignadas")
+    @WithMockUser(roles = "TUTOR_EMPRESA")
+    void tutor_empresa_lista_sus_practicas() throws Exception {
+        PracticaResponse response = new PracticaResponse(1L, "P-001", 1L, "A", 2L, "B", 3L, "C", 4L, "D", null, null, 0, "ACTIVA", null);
+        when(practicaService.listarMisPracticasComoTutorEmpresa()).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/api/v1/practicas/tutor-empresa/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigo").value("P-001"));
+    }
+
+    @Test
+    @DisplayName("TUTOR_CENTRO puede listar sus prácticas asignadas")
+    @WithMockUser(roles = "TUTOR_CENTRO")
+    void tutor_centro_lista_sus_practicas() throws Exception {
+        PracticaResponse response = new PracticaResponse(1L, "P-001", 1L, "A", 2L, "B", 3L, "C", 4L, "D", null, null, 0, "ACTIVA", null);
+        when(practicaService.listarMisPracticasComoTutorCentro()).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/api/v1/practicas/tutor-centro/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigo").value("P-001"));
+    }
+
+    @Test
+    @DisplayName("ADMIN puede actualizar una práctica")
+    @WithMockUser(roles = "ADMIN")
+    void admin_actualiza_practica() throws Exception {
+        PracticaRequest request = new PracticaRequest("P-UPD", 1L, 2L, 3L, 4L, null, null, 400, "ACTIVA");
+        PracticaResponse response = new PracticaResponse(1L, "P-UPD", 1L, "A", 2L, "B", 3L, "C", 4L, "D", null, null, 400, "ACTIVA", null);
+        when(practicaService.actualizar(eq(1L), any(PracticaRequest.class))).thenReturn(response);
+
+        mockMvc.perform(put("/api/v1/practicas/1")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.horasTotales").value(400));
+    }
+
+    @Test
+    @DisplayName("ADMIN puede eliminar una práctica")
+    @WithMockUser(roles = "ADMIN")
+    void admin_elimina_practica() throws Exception {
+        mockMvc.perform(delete("/api/v1/practicas/1").with(csrf()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("ALUMNO no puede acceder a la lista general de prácticas — 403")
+    @WithMockUser(roles = "ALUMNO")
+    void alumno_no_puede_listar_practicas() throws Exception {
+        mockMvc.perform(get("/api/v1/practicas"))
+                .andExpect(status().isForbidden());
     }
 }

@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -5,33 +6,43 @@ import '../../data/models/mensaje_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/practica_provider.dart';
 import '../providers/chat_provider.dart';
+import '../widgets/nexus_avatar.dart';
 
 class ChatPlaceholderScreen extends StatefulWidget {
   final int? practicaId;
-  const ChatPlaceholderScreen({super.key, this.practicaId});
+  final String canal; // 'ALUMNO' | 'TUTORES'
+
+  const ChatPlaceholderScreen({
+    super.key,
+    this.practicaId,
+    this.canal = 'ALUMNO',
+  });
 
   @override
   State<ChatPlaceholderScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatPlaceholderScreen> {
+  // Cada instancia de ChatPlaceholderScreen tiene su propio provider/conexión.
+  final ChatProvider _chat = ChatProvider();
   final TextEditingController _inputCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
+  bool _subiendoAdjunto = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Si practicaId viene por prop (tutor) lo usamos directamente.
       if (widget.practicaId != null) {
-        context.read<ChatProvider>().iniciar(widget.practicaId!);
+        _chat.iniciar(widget.practicaId!, canal: widget.canal);
+        _chat.addListener(_onChatUpdate);
         return;
       }
       // Para el alumno, practicaActiva puede tardar en cargarse.
-      // Intentamos inmediatamente y, si es null, escuchamos al provider.
       final id = context.read<PracticaProvider>().practicaActiva?.id;
       if (id != null) {
-        context.read<ChatProvider>().iniciar(id);
+        _chat.iniciar(id, canal: widget.canal);
+        _chat.addListener(_onChatUpdate);
       } else {
         context.read<PracticaProvider>().addListener(_onPracticaLoaded);
       }
@@ -43,14 +54,20 @@ class _ChatScreenState extends State<ChatPlaceholderScreen> {
     final id = context.read<PracticaProvider>().practicaActiva?.id;
     if (id != null) {
       context.read<PracticaProvider>().removeListener(_onPracticaLoaded);
-      context.read<ChatProvider>().iniciar(id);
+      _chat.iniciar(id, canal: widget.canal);
+      _chat.addListener(_onChatUpdate);
     }
+  }
+
+  void _onChatUpdate() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    // Limpieza defensiva por si se destruye antes de que practicaActiva llegue
     context.read<PracticaProvider>().removeListener(_onPracticaLoaded);
+    _chat.removeListener(_onChatUpdate);
+    _chat.dispose();
     _inputCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -71,110 +88,191 @@ class _ChatScreenState extends State<ChatPlaceholderScreen> {
   void _enviar() {
     final texto = _inputCtrl.text.trim();
     if (texto.isEmpty) return;
-    context.read<ChatProvider>().enviar(texto);
+    _chat.enviar(texto);
     _inputCtrl.clear();
     _scrollAlFinal();
+  }
+
+  Future<void> _enviarAdjunto() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) return;
+
+    setState(() => _subiendoAdjunto = true);
+    try {
+      await _chat.enviarAdjunto(
+        bytes: file.bytes!,
+        nombre: file.name,
+        mimeType: 'application/pdf',
+      );
+      _scrollAlFinal();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al subir el adjunto')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _subiendoAdjunto = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.read<AuthProvider>();
-    final chat = context.watch<ChatProvider>();
     final practicaActiva = context.watch<PracticaProvider>().practicaActiva;
-    final codigoChat = practicaActiva?.codigo
-        ?? 'Práctica #${widget.practicaId}';
+    final codigoChat = practicaActiva?.codigo ?? 'Práctica #${widget.practicaId}';
+    final esCanalTutores = widget.canal == 'TUTORES';
 
     if (widget.practicaId == null && practicaActiva == null) {
-      return const Center(
+      return Center(
         child: Text(
           'Selecciona un alumno para abrir el chat.',
-          style: TextStyle(color: NexusColors.inkSecondary),
+          style: TextStyle(color: context.nxt.inkSecondary),
         ),
       );
     }
 
-    if (chat.mensajes.isNotEmpty) _scrollAlFinal();
+    if (_chat.mensajes.isNotEmpty) _scrollAlFinal();
 
-    return Column(
+    final accentColor = esCanalTutores ? NexusColors.success : NexusColors.primary;
+
+    final chatColumn = Column(
       children: [
         // ---- Header ----
         Container(
-          color: NexusColors.surface,
-          padding: const EdgeInsets.symmetric(
-              horizontal: NexusSizes.spaceLG, vertical: NexusSizes.spaceMD),
+          color: context.nxt.surface,
+          padding: const EdgeInsets.symmetric(horizontal: NexusSizes.spaceLG, vertical: 14),
           child: Row(
             children: [
-              const Icon(Icons.chat_bubble_outline,
-                  size: 18, color: NexusColors.primary),
-              const SizedBox(width: NexusSizes.spaceSM),
-              Expanded(
-                child: Text(
-                  'Chat — $codigoChat',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: NexusColors.ink),
-                ),
-              ),
               Container(
-                width: 8,
-                height: 8,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: chat.conectado
-                      ? NexusColors.success
-                      : NexusColors.neutral,
+                  color: esCanalTutores ? NexusColors.successLight : NexusColors.primaryLight,
+                  borderRadius: BorderRadius.circular(NexusSizes.radiusSM),
+                ),
+                child: Icon(
+                  esCanalTutores ? Icons.supervisor_account_outlined : Icons.chat_bubble_outline,
+                  size: 18,
+                  color: accentColor,
                 ),
               ),
-              const SizedBox(width: NexusSizes.spaceXS),
-              Text(
-                chat.conectado ? 'Conectado' : 'Conectando…',
-                style: TextStyle(
-                    fontSize: 11,
-                    color: chat.conectado
-                        ? NexusColors.success
-                        : NexusColors.inkTertiary),
+              const SizedBox(width: NexusSizes.spaceMD),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      esCanalTutores ? 'Chat tutores — $codigoChat' : 'Chat — $codigoChat',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: context.nxt.ink,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _chat.conectado ? NexusColors.success : context.nxt.inkTertiary,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _chat.conectado ? 'Conectado' : 'Conectando…',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            color: _chat.conectado ? NexusColors.success : context.nxt.inkTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
-        const Divider(height: 0.5, thickness: 0.5, color: NexusColors.border),
+        Divider(height: 1, thickness: NexusSizes.borderWidth, color: context.nxt.border),
 
         // ---- Lista de mensajes ----
         Expanded(
-          child: chat.cargando
-              ? const Center(child: CircularProgressIndicator())
-              : chat.mensajes.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Sé el primero en escribir.',
-                        style: TextStyle(
-                            color: NexusColors.inkTertiary, fontSize: 13),
+          child: Container(
+            color: context.nxt.surfaceAlt,
+            child: _chat.cargando
+                ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: NexusColors.primary))
+                : _chat.mensajes.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.chat_bubble_outline, size: 36, color: context.nxt.inkTertiary),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Sin mensajes todavía.',
+                              style: TextStyle(color: context.nxt.inkSecondary, fontSize: 14, fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Sé el primero en escribir.',
+                              style: TextStyle(color: context.nxt.inkTertiary, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollCtrl,
+                        padding: const EdgeInsets.fromLTRB(
+                            NexusSizes.spaceLG, NexusSizes.spaceLG, NexusSizes.spaceLG, NexusSizes.spaceMD),
+                        itemCount: _chat.mensajes.length,
+                        itemBuilder: (_, i) {
+                          final msg = _chat.mensajes[i];
+                          final esMio = msg.remitenteId == auth.user?.id;
+                          final showDate = i == 0 ||
+                              !_sameDay(_chat.mensajes[i - 1].fechaEnvio, msg.fechaEnvio);
+                          return Column(
+                            children: [
+                              if (showDate) _DateDivider(msg.fechaEnvio),
+                              _MensajeBurbuja(mensaje: msg, esMio: esMio, accentColor: accentColor),
+                            ],
+                          );
+                        },
                       ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollCtrl,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: NexusSizes.spaceLG,
-                          vertical: NexusSizes.spaceMD),
-                      itemCount: chat.mensajes.length,
-                      itemBuilder: (_, i) {
-                        final msg = chat.mensajes[i];
-                        final esMio = msg.remitenteId == auth.user?.id;
-                        return _MensajeBurbuja(mensaje: msg, esMio: esMio);
-                      },
-                    ),
+          ),
         ),
 
-        const Divider(height: 0.5, thickness: 0.5, color: NexusColors.border),
+        Divider(height: 1, thickness: NexusSizes.borderWidth, color: context.nxt.border),
 
         // ---- Input ----
         Container(
-          color: NexusColors.surface,
-          padding: const EdgeInsets.symmetric(
-              horizontal: NexusSizes.spaceMD, vertical: NexusSizes.spaceSM),
+          color: context.nxt.surface,
+          padding: const EdgeInsets.symmetric(horizontal: NexusSizes.spaceMD, vertical: NexusSizes.spaceSM),
           child: Row(
             children: [
+              _subiendoAdjunto
+                  ? const SizedBox(
+                      width: 36, height: 36,
+                      child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator(strokeWidth: 2)),
+                    )
+                  : IconButton(
+                      onPressed: _chat.conectado ? _enviarAdjunto : null,
+                      icon: Icon(Icons.attach_file_rounded, color: context.nxt.inkSecondary, size: 20),
+                      tooltip: 'Adjuntar PDF',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    ),
+              const SizedBox(width: NexusSizes.spaceXS),
               Expanded(
                 child: TextField(
                   controller: _inputCtrl,
@@ -184,24 +282,24 @@ class _ChatScreenState extends State<ChatPlaceholderScreen> {
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _enviar(),
                   decoration: InputDecoration(
-                    hintText: 'Escribe un mensaje…',
-                    hintStyle: const TextStyle(
-                        color: NexusColors.inkTertiary, fontSize: 13),
+                    hintText: esCanalTutores
+                        ? 'Escribe un mensaje para los tutores…'
+                        : 'Escribe un mensaje para el tutor…',
+                    hintStyle: TextStyle(color: context.nxt.inkTertiary, fontSize: 13),
                     border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(NexusSizes.radiusFull),
-                      borderSide:
-                          const BorderSide(color: NexusColors.border),
+                      borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                      borderSide: BorderSide(color: context.nxt.border),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(NexusSizes.radiusFull),
-                      borderSide:
-                          const BorderSide(color: NexusColors.border),
+                      borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                      borderSide: BorderSide(color: context.nxt.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                      borderSide: BorderSide(color: accentColor),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: NexusSizes.spaceLG,
-                        vertical: NexusSizes.spaceSM),
+                        horizontal: NexusSizes.spaceLG, vertical: NexusSizes.spaceSM),
                     isDense: true,
                     counterText: '',
                   ),
@@ -209,15 +307,178 @@ class _ChatScreenState extends State<ChatPlaceholderScreen> {
               ),
               const SizedBox(width: NexusSizes.spaceSM),
               FilledButton(
-                onPressed: chat.conectado ? _enviar : null,
+                onPressed: _chat.conectado ? _enviar : null,
                 style: FilledButton.styleFrom(
-                  backgroundColor: NexusColors.primary,
+                  backgroundColor: accentColor,
                   minimumSize: const Size(44, 44),
                   padding: EdgeInsets.zero,
                   shape: const CircleBorder(),
                 ),
-                child: const Icon(Icons.send_rounded,
-                    size: 18, color: Colors.white),
+                child: const Icon(Icons.send_rounded, size: 18, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return chatColumn;
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+class _DateDivider extends StatelessWidget {
+  final DateTime fecha;
+  const _DateDivider(this.fecha);
+
+  @override
+  Widget build(BuildContext context) {
+    const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    final label = '${dias[fecha.weekday - 1]}, ${fecha.day} de ${meses[fecha.month - 1]}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: NexusSizes.spaceMD),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: context.nxt.border, thickness: 1)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: NexusSizes.spaceMD),
+            child: Text(label, style: NexusText.caption),
+          ),
+          Expanded(child: Divider(color: context.nxt.border, thickness: 1)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MensajeBurbuja extends StatelessWidget {
+  final MensajeModel mensaje;
+  final bool esMio;
+  final Color accentColor;
+
+  const _MensajeBurbuja({
+    required this.mensaje,
+    required this.esMio,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hora =
+        '${mensaje.fechaEnvio.hour.toString().padLeft(2, '0')}:${mensaje.fechaEnvio.minute.toString().padLeft(2, '0')}';
+    final auth = context.read<AuthProvider>();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: NexusSizes.spaceSM),
+      child: Row(
+        mainAxisAlignment: esMio ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!esMio) ...[
+            NexusAvatar(userId: mensaje.remitenteId, nombre: mensaje.nombreCompleto, radius: 14),
+            const SizedBox(width: NexusSizes.spaceXS),
+          ],
+          Flexible(
+            child: Column(
+              crossAxisAlignment: esMio ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                if (!esMio)
+                  Padding(
+                    padding: const EdgeInsets.only(left: NexusSizes.spaceXS, bottom: 2),
+                    child: Text(
+                      mensaje.nombreCompleto,
+                      style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: context.nxt.inkSecondary),
+                    ),
+                  ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: NexusSizes.spaceMD, vertical: NexusSizes.spaceSM),
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  decoration: BoxDecoration(
+                    color: esMio ? accentColor : context.nxt.surface,
+                    border: esMio ? null : Border.all(color: context.nxt.border),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(NexusSizes.radiusMD),
+                      topRight: const Radius.circular(NexusSizes.radiusMD),
+                      bottomLeft: Radius.circular(esMio ? NexusSizes.radiusMD : 4),
+                      bottomRight: Radius.circular(esMio ? 4 : NexusSizes.radiusMD),
+                    ),
+                  ),
+                  child: mensaje.esAdjunto
+                      ? _AdjuntoCard(mensaje: mensaje, esMio: esMio, accentColor: accentColor)
+                      : Text(
+                          mensaje.contenido,
+                          style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              color: esMio ? Colors.white : context.nxt.ink),
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 3, left: NexusSizes.spaceXS, right: NexusSizes.spaceXS),
+                  child: Text(hora, style: TextStyle(fontSize: 10, color: context.nxt.inkTertiary)),
+                ),
+              ],
+            ),
+          ),
+          if (esMio) ...[
+            const SizedBox(width: NexusSizes.spaceXS),
+            NexusAvatar(userId: auth.user!.id, nombre: auth.user!.nombreCompleto, radius: 14),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AdjuntoCard extends StatelessWidget {
+  final MensajeModel mensaje;
+  final bool esMio;
+  final Color accentColor;
+
+  const _AdjuntoCard({required this.mensaje, required this.esMio, required this.accentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final chat = context.read<ChatProvider>();
+    final nombre = mensaje.adjuntoNombre ?? 'documento.pdf';
+    final iconColor = esMio ? Colors.white70 : accentColor;
+    final textColor = esMio ? Colors.white : context.nxt.ink;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.picture_as_pdf_outlined, size: 28, color: iconColor),
+        const SizedBox(width: NexusSizes.spaceSM),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                nombre,
+                style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.w500),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              GestureDetector(
+                onTap: () => chat.descargarAdjunto(mensaje.id, nombre),
+                child: Text(
+                  'Descargar',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: esMio ? Colors.white70 : accentColor,
+                    decoration: TextDecoration.underline,
+                    decorationColor: esMio ? Colors.white70 : accentColor,
+                  ),
+                ),
               ),
             ],
           ),
@@ -227,100 +488,3 @@ class _ChatScreenState extends State<ChatPlaceholderScreen> {
   }
 }
 
-class _MensajeBurbuja extends StatelessWidget {
-  final MensajeModel mensaje;
-  final bool esMio;
-
-  const _MensajeBurbuja({required this.mensaje, required this.esMio});
-
-  @override
-  Widget build(BuildContext context) {
-    final hora =
-        '${mensaje.fechaEnvio.hour.toString().padLeft(2, '0')}:${mensaje.fechaEnvio.minute.toString().padLeft(2, '0')}';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: NexusSizes.spaceSM),
-      child: Row(
-        mainAxisAlignment:
-            esMio ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!esMio) ...[
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: NexusColors.primaryLight,
-              child: Text(
-                mensaje.remitenteNombre.isNotEmpty
-                    ? mensaje.remitenteNombre[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: NexusColors.primaryText),
-              ),
-            ),
-            const SizedBox(width: NexusSizes.spaceXS),
-          ],
-          Flexible(
-            child: Column(
-              crossAxisAlignment: esMio
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
-              children: [
-                if (!esMio)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                        left: NexusSizes.spaceXS, bottom: 2),
-                    child: Text(
-                      mensaje.nombreCompleto,
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: NexusColors.inkSecondary),
-                    ),
-                  ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: NexusSizes.spaceMD,
-                      vertical: NexusSizes.spaceSM),
-                  decoration: BoxDecoration(
-                    color: esMio ? NexusColors.primary : NexusColors.surface,
-                    border: esMio
-                        ? null
-                        : Border.all(color: NexusColors.border),
-                    borderRadius: BorderRadius.only(
-                      topLeft:
-                          const Radius.circular(NexusSizes.radiusMD),
-                      topRight:
-                          const Radius.circular(NexusSizes.radiusMD),
-                      bottomLeft: Radius.circular(
-                          esMio ? NexusSizes.radiusMD : 4),
-                      bottomRight: Radius.circular(
-                          esMio ? 4 : NexusSizes.radiusMD),
-                    ),
-                  ),
-                  child: Text(
-                    mensaje.contenido,
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: esMio ? Colors.white : NexusColors.ink),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                      top: 2,
-                      left: NexusSizes.spaceXS,
-                      right: NexusSizes.spaceXS),
-                  child: Text(hora,
-                      style: const TextStyle(
-                          fontSize: 10,
-                          color: NexusColors.inkTertiary)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

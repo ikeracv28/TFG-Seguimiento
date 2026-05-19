@@ -7,10 +7,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
  */
 class ApiClient {
   static const String _baseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:8080/api/v1');
+
+  // Deriva la URL WebSocket del mismo env var: http→ws, https→wss, elimina /api/v1
+  static String get wsBaseUrl {
+    final uri = Uri.parse(_baseUrl);
+    final wsScheme = uri.scheme == 'https' ? 'wss' : 'ws';
+    return '$wsScheme://${uri.authority}/ws';
+  }
+
   final Dio _dio = Dio(BaseOptions(
     baseUrl: _baseUrl,
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 3),
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
     contentType: 'application/json',
   ));
 

@@ -2,6 +2,8 @@ package com.tfg.api.models.repository;
 
 import com.tfg.api.models.entity.Practica;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -49,4 +51,16 @@ public interface PracticaRepository extends JpaRepository<Practica, Long> {
      * Devuelve Optional para manejar el caso de que no tenga práctica activa.
      */
     Optional<Practica> findFirstByAlumnoIdAndEstado(Long alumnoId, String estado);
+
+    /**
+     * Carga la práctica con sus tres participantes ya inicializados (JOIN FETCH).
+     * Necesario en contextos sin sesión JPA activa (ej. interceptores WebSocket)
+     * para evitar LazyInitializationException al acceder a alumno/tutorCentro/tutorEmpresa.
+     */
+    @Query("SELECT p FROM Practica p " +
+           "JOIN FETCH p.alumno " +
+           "JOIN FETCH p.tutorCentro " +
+           "JOIN FETCH p.tutorEmpresa " +
+           "WHERE p.id = :id")
+    Optional<Practica> findByIdConParticipantes(@Param("id") Long id);
 }

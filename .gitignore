@@ -2,17 +2,6 @@
 # .gitignore — Repositorio de entrega (Nexus-TFG)
 # ============================================================
 
-# Herramientas de IA (no forman parte del proyecto)
-CLAUDE.md
-GEMINI.md
-.agents/
-.claude/
-.gemini/
-.mcp.json
-skills-lock.json
-conductor/
-planes/
-
 # Flutter / Dart
 .dart_tool/
 .packages
@@ -115,5 +104,30 @@ sonarqube_issues.json
 *~
 .directory
 
-# Claude Code — configuración interna del agente (no necesaria en remoto)
+# GitHub Actions (no se usa en este proyecto)
+.github/
+
+# Herramientas de desarrollo local
 .claude/
+.agents/
+conductor/
+planes/
+.mcp.json
+skills-lock.json
+CLAUDE.md
+GEMINI.md
+RETOMAR_SESION.md
+contexto_proyecto.md
+HISTORIAL_CAMBIOS.md
+ACTUALIZACIONES_MEMORIA.md
+MEMORIA_ACTUALIZACIONES.md
+MEMORIA_NUEVA_CONTENIDO.md
+
+# Archivos temporales y borradores
+Feedback.md
+memoria75%.md
+MemoriaEnMd.md
+flutter_build.log
+screen.png
+screen*.png
+fotos/

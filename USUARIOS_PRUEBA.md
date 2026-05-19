@@ -9,7 +9,7 @@ URL local: **http://localhost** (Flutter web vía Nginx)
 | Rol | Email | Contraseña | Nombre | DNI |
 |-----|-------|-----------|--------|-----|
 | ALUMNO | `alumno@nexus.edu` | `Alumno@Nexus2026` | Pedro Alumno García | 33333333C |
-| TUTOR_CENTRO | `tutor@nexus.edu` | `Tutor@Nexus2026` | Ana Tutor Martínez | 22222222B |
+| TUTOR_CENTRO | `tutor@nexus.edu` | `Tutor@Nexus2026 ` | Ana Tutor Martínez | 22222222B |
 | TUTOR_EMPRESA | `tutorempresa@nexus.edu` | `Empresa@Nexus2026` | Carlos García Empresa | 44444444D |
 | ADMIN | `admin@nexus.edu` | `Admin@Nexus2026` | Admin Nexus | 11111111A |
 

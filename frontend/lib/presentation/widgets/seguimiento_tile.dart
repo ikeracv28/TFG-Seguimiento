@@ -26,7 +26,7 @@ class SeguimientoTile extends StatelessWidget {
                 ),
                 const SizedBox(height: NexusSizes.spaceXS),
                 Text(
-                  '${seguimiento.horasRealizadas}h  ·  ${_labelEstado(seguimiento.estado)}',
+                  '${fmtH(seguimiento.horasRealizadas)}  ·  ${_labelEstado(seguimiento.estado)}',
                   style: NexusText.caption,
                 ),
               ],

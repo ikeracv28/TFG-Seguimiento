@@ -1,0 +1,12 @@
+<svg width="900" height="220" viewBox="0 0 900 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="900" height="220" fill="white"/>
+<text x="40" y="150" font-family="Arial, sans-serif" font-size="140" fill="#0B66FF" font-weight="700">Ne</text>
+<text x="470" y="150" font-family="Arial, sans-serif" font-size="140" fill="#0B66FF" font-weight="700">us</text>
+<g transform="translate(330,25)">
+<path d="M20 20 L120 160 M120 20 L20 160" stroke="#0B66FF" stroke-width="18" stroke-linecap="round"/>
+<circle cx="30" cy="30" r="10" fill="#0B66FF"/>
+<circle cx="110" cy="30" r="10" fill="#0B66FF"/>
+<circle cx="30" cy="150" r="10" fill="#0B66FF"/>
+<circle cx="110" cy="150" r="10" fill="#0B66FF"/>
+</g>
+</svg>

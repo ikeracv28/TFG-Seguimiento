@@ -9,5 +9,8 @@ public record MensajeResponse(
     String remitenteNombre,
     String remitenteApellidos,
     String contenido,
-    LocalDateTime fechaEnvio
+    LocalDateTime fechaEnvio,
+    String canal,
+    String tipo,           // "TEXTO" | "ADJUNTO"
+    String adjuntoNombre   // nombre del fichero si tipo == "ADJUNTO"
 ) {}

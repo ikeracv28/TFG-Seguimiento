@@ -7,12 +7,14 @@ class User {
   final String email;
   final String nombreCompleto;
   final List<String> roles;
+  final bool tieneFoto;
 
   User({
     required this.id,
     required this.email,
     required this.nombreCompleto,
     required this.roles,
+    this.tieneFoto = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -21,8 +23,17 @@ class User {
       email: json['email'] as String,
       nombreCompleto: json['nombre'] as String,
       roles: List<String>.from(json['roles'] as List),
+      tieneFoto: json['tieneFoto'] as bool? ?? false,
     );
   }
+
+  User copyWith({bool? tieneFoto}) => User(
+        id: id,
+        email: email,
+        nombreCompleto: nombreCompleto,
+        roles: roles,
+        tieneFoto: tieneFoto ?? this.tieneFoto,
+      );
 }
 
 /**

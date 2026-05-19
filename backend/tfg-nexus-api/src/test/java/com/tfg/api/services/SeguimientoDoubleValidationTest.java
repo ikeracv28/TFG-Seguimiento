@@ -66,8 +66,9 @@ class SeguimientoDoubleValidationTest {
     @Test
     @DisplayName("Caso 1: alumno registra parte, estado inicial es PENDIENTE_EMPRESA")
     void caso1_registro_estado_pendiente_empresa() {
+        setSecurityContext("alumno@validacion.test");
         SeguimientoResponse response = seguimientoService.registrar(
-                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8, "Primera semana"));
+                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8.0, "Primera semana", null));
 
         assertThat(response.estado()).isEqualTo("PENDIENTE_EMPRESA");
     }
@@ -78,8 +79,9 @@ class SeguimientoDoubleValidationTest {
     @Test
     @DisplayName("Caso 2: tutor empresa valida parte, estado pasa a PENDIENTE_CENTRO")
     void caso2_tutor_empresa_valida() {
+        setSecurityContext("alumno@validacion.test");
         SeguimientoResponse reg = seguimientoService.registrar(
-                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8, "Segunda semana"));
+                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8.0, "Segunda semana", null));
 
         setSecurityContext(EMAIL_TUTOR_EMPRESA);
         SeguimientoResponse result = seguimientoService.validarEmpresa(reg.id(), "PENDIENTE_CENTRO", null);
@@ -94,8 +96,9 @@ class SeguimientoDoubleValidationTest {
     @Test
     @DisplayName("Caso 3: tutor empresa rechaza parte, se genera incidencia RECHAZO_PARTE automáticamente")
     void caso3_tutor_empresa_rechaza_genera_incidencia() {
+        setSecurityContext("alumno@validacion.test");
         SeguimientoResponse reg = seguimientoService.registrar(
-                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8, "Tercera semana"));
+                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8.0, "Tercera semana", null));
 
         long incidenciasPrevias = incidenciaRepository.count();
 
@@ -119,8 +122,9 @@ class SeguimientoDoubleValidationTest {
     @Test
     @DisplayName("Caso 4: tutor centro no puede validar un parte que aún está en PENDIENTE_EMPRESA")
     void caso4_tutor_centro_no_puede_saltarse_el_orden() {
+        setSecurityContext("alumno@validacion.test");
         SeguimientoResponse reg = seguimientoService.registrar(
-                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8, "Cuarta semana"));
+                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8.0, "Cuarta semana", null));
 
         setSecurityContext(EMAIL_TUTOR_CENTRO);
         assertThatThrownBy(() -> seguimientoService.validarCentro(reg.id()))
@@ -134,8 +138,9 @@ class SeguimientoDoubleValidationTest {
     @Test
     @DisplayName("Flujo completo: empresa valida y centro completa, estado final es COMPLETADO")
     void flujo_completo_empresa_luego_centro() {
+        setSecurityContext("alumno@validacion.test");
         SeguimientoResponse reg = seguimientoService.registrar(
-                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8, "Quinta semana"));
+                new SeguimientoRequest(practica.getId(), LocalDate.now(), 8.0, "Quinta semana", null));
 
         setSecurityContext(EMAIL_TUTOR_EMPRESA);
         seguimientoService.validarEmpresa(reg.id(), "PENDIENTE_CENTRO", null);

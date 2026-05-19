@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/ausencia_model.dart';
 
@@ -44,11 +44,11 @@ class AusenciaTile extends StatelessWidget {
                     padding: const EdgeInsets.only(top: NexusSizes.spaceXS),
                     child: Row(
                       children: [
-                        const Icon(Icons.attach_file, size: 12, color: NexusColors.inkTertiary),
+                        Icon(Icons.attach_file, size: 12, color: context.nxt.inkTertiary),
                         const SizedBox(width: 2),
                         Text(
                           ausencia.nombreFichero ?? 'Justificante adjunto',
-                          style: NexusText.caption.copyWith(color: NexusColors.inkTertiary),
+                          style: NexusText.caption.copyWith(color: context.nxt.inkTertiary),
                         ),
                       ],
                     ),

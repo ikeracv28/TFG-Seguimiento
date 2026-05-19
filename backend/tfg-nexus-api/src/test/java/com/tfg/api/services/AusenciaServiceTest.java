@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,11 @@ class AusenciaServiceTest {
     private Practica practica;
     private Usuario alumno;
     private Usuario tutorEmpresa;
+
+    private void setSecurityContext(String email) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(email, null, List.of()));
+    }
 
     @BeforeEach
     void setUp() {
@@ -185,6 +192,7 @@ class AusenciaServiceTest {
         ausenciaService.registrar(new AusenciaRequest(practica.getId(), LocalDate.now().minusDays(1), "Primera ausencia test"), alumno.getEmail());
         ausenciaService.registrar(new AusenciaRequest(practica.getId(), LocalDate.now().minusDays(2), "Segunda ausencia test"), alumno.getEmail());
 
+        setSecurityContext(alumno.getEmail());
         List<AusenciaResponse> lista = ausenciaService.listarPorPractica(practica.getId());
 
         assertThat(lista).hasSize(2);
@@ -197,6 +205,7 @@ class AusenciaServiceTest {
                 new AusenciaRequest(practica.getId(), LocalDate.now().minusDays(8), "Para eliminar despues"),
                 alumno.getEmail());
 
+        setSecurityContext(alumno.getEmail());
         ausenciaService.eliminar(creada.id(), alumno.getEmail());
 
         assertThat(ausenciaService.listarPorPractica(practica.getId())).isEmpty();

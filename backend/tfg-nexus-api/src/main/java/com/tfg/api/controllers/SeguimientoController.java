@@ -2,6 +2,7 @@ package com.tfg.api.controllers;
 
 import com.tfg.api.models.dto.SeguimientoRequest;
 import com.tfg.api.models.dto.SeguimientoResponse;
+import com.tfg.api.models.entity.EstadoValidacionEmpresa;
 import com.tfg.api.services.SeguimientoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,9 +40,9 @@ public class SeguimientoController {
     @PreAuthorize("hasRole('TUTOR_EMPRESA')")
     public ResponseEntity<SeguimientoResponse> validarEmpresa(
             @PathVariable Long id,
-            @RequestParam String nuevoEstado,
+            @RequestParam EstadoValidacionEmpresa nuevoEstado,
             @RequestParam(required = false) String motivo) {
-        return ResponseEntity.ok(seguimientoService.validarEmpresa(id, nuevoEstado, motivo));
+        return ResponseEntity.ok(seguimientoService.validarEmpresa(id, nuevoEstado.valor(), motivo));
     }
 
     /**

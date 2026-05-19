@@ -52,6 +52,14 @@ public class SecurityConfig {
                     .includeSubDomains(true)
                     .maxAgeInSeconds(31536000))
                 .xssProtection(Customizer.withDefaults())
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; " +
+                        "script-src 'self'; " +
+                        "style-src 'self' 'unsafe-inline'; " +
+                        "img-src 'self' data:; " +
+                        "connect-src 'self' ws: wss:; " +
+                        "frame-ancestors 'none'; " +
+                        "object-src 'none'"))
             )
 
             .authorizeHttpRequests(auth -> auth

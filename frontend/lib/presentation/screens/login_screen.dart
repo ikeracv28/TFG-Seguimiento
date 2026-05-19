@@ -2,14 +2,214 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/nexus_logo.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    if (!auth.sessionChecked) {
+      return const Scaffold(
+        backgroundColor: NexusColors.surfaceAlt,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              NexusIcon(size: 48, variant: NexusLogoVariant.dark),
+              SizedBox(height: 24),
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: NexusColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 800) {
+          return const _DesktopLogin();
+        }
+        return const _MobileLogin();
+      },
+    );
+  }
+}
+
+// ── Desktop: panel izquierdo azul + panel derecho blanco ────────────────────
+
+class _DesktopLogin extends StatelessWidget {
+  const _DesktopLogin();
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NexusColors.surfaceAlt,
+      backgroundColor: context.nxt.surface,
+      body: Row(
+        children: [
+          // Panel izquierdo — branding
+          Expanded(
+            child: Container(
+              color: NexusColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 64),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Wordmark en blanco
+                  const NexusLogo(height: 36, variant: NexusLogoVariant.light),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Plataforma de Prácticas FCT',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withAlpha(200),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Features
+                  ...[
+                    ('Seguimiento en tiempo real', 'Partes de trabajo, incidencias y chat con el tutor.'),
+                    ('Gestión centralizada', 'Empresas, alumnos y convenios en un solo lugar.'),
+                    ('Informes automáticos', 'Exporta el historial en PDF y Excel con un clic.'),
+                  ].map((f) => _FeatureBullet(title: f.$1, desc: f.$2)),
+                  const Spacer(),
+                  Text(
+                    'CampusFP · Nexus v1.0',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: Colors.white.withAlpha(130),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Panel derecho — formulario
+          Expanded(
+            child: Container(
+              color: context.nxt.surface,
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(48),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 380),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const NexusLogo(height: 44),
+                        const SizedBox(height: 32),
+                        Text(
+                          'Bienvenido de nuevo',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: context.nxt.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Accede con tu cuenta institucional',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            color: context.nxt.inkSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        const _LoginForm(),
+                        const SizedBox(height: 24),
+                        _ThemeToggle(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeatureBullet extends StatelessWidget {
+  final String title;
+  final String desc;
+  const _FeatureBullet({required this.title, required this.desc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 3),
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(180),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  desc,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    color: Colors.white.withAlpha(180),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Mobile: card centrada ────────────────────────────────────────────────────
+
+class _MobileLogin extends StatelessWidget {
+  const _MobileLogin();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.nxt.surfaceAlt,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(NexusSizes.space2XL),
@@ -18,14 +218,43 @@ class LoginScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const _NexusLogo(),
+                const NexusLogo(height: 48),
                 const SizedBox(height: NexusSizes.space2XL),
-                const _LoginCard(),
-                const SizedBox(height: NexusSizes.spaceLG),
-                Text(
-                  'CampusFP · Nexus v1.0',
-                  style: NexusText.caption.copyWith(color: NexusColors.inkTertiary),
+                Container(
+                  padding: const EdgeInsets.all(NexusSizes.space3XL),
+                  decoration: BoxDecoration(
+                    color: context.nxt.surface,
+                    border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
+                    borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Iniciar sesión',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: context.nxt.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Accede con tu cuenta institucional',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: context.nxt.inkTertiary,
+                        ),
+                      ),
+                      const SizedBox(height: NexusSizes.space2XL),
+                      const _LoginForm(),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: NexusSizes.spaceLG),
+                _ThemeToggle(),
               ],
             ),
           ),
@@ -35,131 +264,20 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-// Logo: red de nodos con letras A, T, A, E
+// ── Formulario compartido ────────────────────────────────────────────────────
 
-class _NexusLogo extends StatelessWidget {
-  const _NexusLogo();
+class _LoginForm extends StatefulWidget {
+  const _LoginForm();
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          width: 96,
-          height: 96,
-          child: CustomPaint(painter: _NexusNetworkPainter()),
-        ),
-        const SizedBox(height: NexusSizes.spaceMD),
-        const Text('Nexus', style: NexusText.heading1),
-        const SizedBox(height: NexusSizes.spaceXS),
-        Text(
-          'Gestión de Prácticas Académicas',
-          style: NexusText.small.copyWith(color: NexusColors.inkSecondary),
-        ),
-      ],
-    );
-  }
+  State<_LoginForm> createState() => _LoginFormState();
 }
 
-class _NexusNetworkPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Nodos: centro + 4 extremos (A=Alumno, T=Tutor, A=Admin, E=Empresa)
-    final center    = Offset(w * 0.50, h * 0.50);
-    final nodeTop   = Offset(w * 0.50, h * 0.07); // T — Tutor
-    final nodeRight = Offset(w * 0.93, h * 0.50); // A — Admin
-    final nodeBot   = Offset(w * 0.50, h * 0.93); // E — Empresa
-    final nodeLeft  = Offset(w * 0.07, h * 0.50); // A — Alumno
-
-    // Pincel de lineas
-    final linePaint = Paint()
-      ..color = NexusColors.primary.withAlpha(60)
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
-
-    // Lineas entre nodos extremos (cuadrado exterior)
-    canvas.drawLine(nodeLeft, nodeTop, linePaint);
-    canvas.drawLine(nodeTop, nodeRight, linePaint);
-    canvas.drawLine(nodeRight, nodeBot, linePaint);
-    canvas.drawLine(nodeBot, nodeLeft, linePaint);
-
-    // Lineas hub (centro a cada extremo)
-    final hubPaint = Paint()
-      ..color = NexusColors.primary.withAlpha(110)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    for (final node in [nodeTop, nodeRight, nodeBot, nodeLeft]) {
-      canvas.drawLine(center, node, hubPaint);
-    }
-
-    // Nodo central (relleno azul)
-    canvas.drawCircle(
-      center,
-      5.5,
-      Paint()..color = NexusColors.primary,
-    );
-
-    // Nodos extremos con letra
-    _drawLabeledNode(canvas, nodeLeft,  'A', w * 0.135);
-    _drawLabeledNode(canvas, nodeTop,   'T', w * 0.135);
-    _drawLabeledNode(canvas, nodeRight, 'A', w * 0.135);
-    _drawLabeledNode(canvas, nodeBot,   'E', w * 0.135);
-  }
-
-  void _drawLabeledNode(Canvas canvas, Offset center, String letter, double radius) {
-    const r = 11.0;
-
-    // Fondo blanco del nodo
-    canvas.drawCircle(center, r, Paint()..color = NexusColors.surface);
-
-    // Borde azul del nodo
-    canvas.drawCircle(
-      center,
-      r,
-      Paint()
-        ..color = NexusColors.primary
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-
-    // Letra centrada
-    final tp = TextPainter(
-      text: TextSpan(
-        text: letter,
-        style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: NexusColors.primary,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// Card del formulario de login
-
-class _LoginCard extends StatefulWidget {
-  const _LoginCard();
-
-  @override
-  State<_LoginCard> createState() => _LoginCardState();
-}
-
-class _LoginCardState extends State<_LoginCard> {
-  final _emailController = TextEditingController();
+class _LoginFormState extends State<_LoginForm> {
+  final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
+  final _formKey            = GlobalKey<FormState>();
+  bool _obscurePassword     = true;
 
   @override
   void dispose() {
@@ -190,93 +308,67 @@ class _LoginCardState extends State<_LoginCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(NexusSizes.space3XL),
-      decoration: BoxDecoration(
-        color: NexusColors.surface,
-        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
-        borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Iniciar sesión', style: NexusText.heading3),
-            const SizedBox(height: NexusSizes.spaceXS),
-            Text(
-              'Accede con tu cuenta institucional',
-              style: NexusText.caption.copyWith(color: NexusColors.inkTertiary),
-            ),
-            const SizedBox(height: NexusSizes.space2XL),
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _FieldLabel(label: 'Correo electrónico'),
+          const SizedBox(height: NexusSizes.spaceXS),
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: NexusText.small,
+            decoration: const InputDecoration(hintText: 'nombre@centro.edu'),
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Campo obligatorio';
+              if (!v.contains('@')) return 'Introduce un email válido';
+              return null;
+            },
+          ),
+          const SizedBox(height: NexusSizes.spaceLG),
 
-            // Campo email
-            _FieldLabel(label: 'Correo electrónico'),
-            const SizedBox(height: NexusSizes.spaceXS),
-            TextFormField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              style: NexusText.small,
-              decoration: const InputDecoration(
-                hintText: 'nombre@centro.edu',
-              ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Campo obligatorio';
-                if (!v.contains('@')) return 'Introduce un email valido';
-                return null;
-              },
-            ),
-            const SizedBox(height: NexusSizes.spaceLG),
-
-            // Campo contraseña
-            _FieldLabel(label: 'Contraseña'),
-            const SizedBox(height: NexusSizes.spaceXS),
-            TextFormField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              style: NexusText.small,
-              decoration: InputDecoration(
-                hintText: '••••••••',
-                suffixIcon: GestureDetector(
-                  onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-                  child: Icon(
-                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    size: 18,
-                    color: NexusColors.inkTertiary,
-                  ),
+          const _FieldLabel(label: 'Contraseña'),
+          const SizedBox(height: NexusSizes.spaceXS),
+          TextFormField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            style: NexusText.small,
+            decoration: InputDecoration(
+              hintText: '••••••••',
+              suffixIcon: GestureDetector(
+                onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                child: Icon(
+                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  size: 18,
+                  color: NexusColors.inkTertiary,
                 ),
               ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Campo obligatorio';
-                if (v.length < 6) return 'Minimo 6 caracteres';
-                return null;
-              },
             ),
-            const SizedBox(height: NexusSizes.space2XL),
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Campo obligatorio';
+              if (v.length < 6) return 'Mínimo 6 caracteres';
+              return null;
+            },
+          ),
+          const SizedBox(height: NexusSizes.space2XL),
 
-            // Boton de acceso
-            Consumer<AuthProvider>(
-              builder: (context, auth, _) {
-                return SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: auth.isLoading ? null : _handleLogin,
-                    child: auth.isLoading
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Acceder'),
-                  ),
-                );
-              },
+          Consumer<AuthProvider>(
+            builder: (context, auth, _) => SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: auth.isLoading ? null : _handleLogin,
+                child: auth.isLoading
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Acceder'),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -290,12 +382,37 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: NexusText.label.copyWith(
-        color: NexusColors.inkSecondary,
-        letterSpacing: 0.3,
+      style: const TextStyle(
+        fontFamily: 'Inter',
         fontSize: 12,
         fontWeight: FontWeight.w500,
+        color: NexusColors.inkSecondary,
       ),
+    );
+  }
+}
+
+class _ThemeToggle extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'CampusFP · Nexus v1.0',
+          style: TextStyle(fontSize: 12, color: NexusColors.inkTertiary),
+        ),
+        const SizedBox(width: NexusSizes.spaceSM),
+        GestureDetector(
+          onTap: () => context.read<ThemeProvider>().toggle(),
+          child: Icon(
+            isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            size: 16,
+            color: NexusColors.inkTertiary,
+          ),
+        ),
+      ],
     );
   }
 }

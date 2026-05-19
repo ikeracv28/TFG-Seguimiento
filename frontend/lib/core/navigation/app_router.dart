@@ -10,6 +10,8 @@ GoRouter buildRouter(AuthProvider auth) => GoRouter(
       initialLocation: '/login',
       refreshListenable: auth,
       redirect: (context, state) {
+        if (!auth.sessionChecked) return null;
+
         final loggedIn = auth.isAuthenticated;
         final goingToLogin = state.matchedLocation == '/login';
 

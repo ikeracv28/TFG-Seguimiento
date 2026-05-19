@@ -12,6 +12,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -86,6 +87,29 @@ public class GlobalExceptionHandler {
                 ex.getMessage()
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String mensaje = "Valor no válido para el parámetro '" + ex.getName() + "': " + ex.getValue();
+        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
+            Object[] constantes = ex.getRequiredType().getEnumConstants();
+            String validos = java.util.Arrays.stream(constantes)
+                    .map(Object::toString)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            mensaje += ". Valores aceptados: " + validos;
+        }
+        return new ResponseEntity<>(new ErrorResponse(HttpStatus.BAD_REQUEST.value(), mensaje),
+                HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     /**

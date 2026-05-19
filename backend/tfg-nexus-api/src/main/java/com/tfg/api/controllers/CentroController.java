@@ -4,6 +4,7 @@ import com.tfg.api.models.dto.CentroResponse;
 import com.tfg.api.services.CentroService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +24,7 @@ public class CentroController {
      * Devuelve el listado de todos los centros registrados.
      */
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CentroResponse>> getAll() {
         return ResponseEntity.ok(centroService.findAll());
     }

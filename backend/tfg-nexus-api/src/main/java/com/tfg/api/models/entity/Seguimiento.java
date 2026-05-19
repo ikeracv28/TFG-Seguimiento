@@ -39,7 +39,7 @@ public class Seguimiento {
      * Cantidad de horas realizadas en esa fecha específica.
      */
     @Column(name = "horas_realizadas", nullable = false)
-    private Integer horasRealizadas;
+    private Double horasRealizadas;
 
     /**
      * Descripción detallada de las tareas llevadas a cabo.
@@ -60,6 +60,14 @@ public class Seguimiento {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "validado_por")
     private Usuario validadoPor;
+
+    /**
+     * Tipo de registro: DIARIO (un día concreto) o SEMANAL (toda la semana).
+     * Para SEMANAL, fechaRegistro almacena el lunes de esa semana.
+     */
+    @Column(length = 10)
+    @Builder.Default
+    private String tipo = "DIARIO";
 
     /**
      * Feedback opcional del tutor tras la validación o rechazo.

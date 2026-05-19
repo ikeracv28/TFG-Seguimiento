@@ -1,15 +1,23 @@
-// ignore: avoid_web_libraries_in_flutter
+﻿// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/ausencia_model.dart';
+import '../../data/models/evaluacion_final_model.dart';
 import '../../data/models/practica_model.dart';
 import '../../data/models/seguimiento_model.dart';
 import '../../data/services/ausencia_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/tutor_empresa_provider.dart';
+import 'chat_placeholder_screen.dart';
+import 'perfil_screen.dart';
+import 'notificaciones_screen.dart';
+import '../widgets/nexus_avatar.dart';
+import '../providers/notificacion_provider.dart';
+import '../widgets/nexus_logo.dart';
 
 class PanelTutorEmpresaScreen extends StatefulWidget {
   const PanelTutorEmpresaScreen({super.key});
@@ -20,7 +28,8 @@ class PanelTutorEmpresaScreen extends StatefulWidget {
 }
 
 class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
-  int _tab = 0; // 0 = pendientes, 1 = progreso
+  int _tab = 0; // 0 = pendientes, 1 = progreso, 2 = chat
+  int? _chatPracticaId;
 
   @override
   void initState() {
@@ -36,7 +45,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
     final provider = context.watch<TutorEmpresaProvider>();
 
     return Scaffold(
-      backgroundColor: NexusColors.surfaceAlt,
+      backgroundColor: context.nxt.surfaceAlt,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth > 600;
@@ -79,7 +88,9 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
       );
     }
 
-    return RefreshIndicator(
+    if (_tab == 2) return _buildChat(provider);
+
+  return RefreshIndicator(
       onRefresh: () => context.read<TutorEmpresaProvider>().cargar(),
       child: _tab == 0
           ? _buildPendientes(auth, provider)
@@ -115,7 +126,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '${auth.user?.nombreCompleto ?? ''} · $empresa',
-                      style: NexusText.body.copyWith(color: NexusColors.inkSecondary),
+                      style: NexusText.body.copyWith(color: context.nxt.inkSecondary),
                     ),
                   ],
                 ),
@@ -125,9 +136,9 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
           ),
           const SizedBox(height: 24),
 
-          // ── Stats ──────────────────────────────────────────────────────
-          Row(
-            children: [
+          // ── Stats — responsive: Row en desktop, Column en móvil ────────
+          LayoutBuilder(builder: (ctx, cst) {
+            final tiles = [
               _StatTile(
                 value: '${pendientes.length}',
                 label: 'Pendientes',
@@ -135,26 +146,44 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                 bg: NexusColors.warningLight,
                 labelColor: NexusColors.warningText,
               ),
-              const SizedBox(width: 10),
               _StatTile(
-                value: '${provider.totalHorasValidadasEmpresa}h',
+                value: fmtH(provider.totalHorasValidadasEmpresa),
                 label: 'Horas validadas',
                 accent: NexusColors.success,
                 bg: NexusColors.successLight,
                 labelColor: NexusColors.successText,
               ),
-              const SizedBox(width: 10),
               _StatTile(
                 value: provider.totalHorasConvenio > 0
-                    ? '${provider.totalHorasRestantes}h'
+                    ? fmtH(provider.totalHorasRestantes)
                     : '—',
                 label: 'Horas restantes',
-                accent: NexusColors.inkSecondary,
-                bg: const Color(0xFFF1EFE8),
-                labelColor: NexusColors.inkSecondary,
+                accent: context.nxt.inkSecondary,
+                bg: context.nxt.surfaceAlt,
+                labelColor: context.nxt.inkSecondary,
               ),
-            ],
-          ),
+            ];
+            if (cst.maxWidth < 600) {
+              return Column(
+                children: [
+                  tiles[0],
+                  const SizedBox(height: 10),
+                  tiles[1],
+                  const SizedBox(height: 10),
+                  tiles[2],
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: tiles[0]),
+                const SizedBox(width: 10),
+                Expanded(child: tiles[1]),
+                const SizedBox(width: 10),
+                Expanded(child: tiles[2]),
+              ],
+            );
+          }),
           const SizedBox(height: 28),
 
           // ── Contenido principal ────────────────────────────────────────
@@ -165,7 +194,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
               Text(
                 'FIRMA PENDIENTE',
                 style: NexusText.label.copyWith(
-                    color: NexusColors.inkTertiary, letterSpacing: 1.2),
+                    color: context.nxt.inkTertiary, letterSpacing: 1.2),
               ),
               const SizedBox(height: 10),
               ...pendientes.map((s) {
@@ -174,6 +203,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _ParteCard(
                     seguimiento: s,
+                    alumnoId: practica?.alumnoId ?? 0,
                     alumnoNombre: practica?.alumnoNombre ?? 'Alumno',
                     onValidar: () => _confirmarValidar(s.id),
                     onRechazar: () => _mostrarModalRechazo(s.id),
@@ -189,7 +219,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
               Text(
                 'AUSENCIAS PENDIENTES · ${ausenciasPendientes.length}',
                 style: NexusText.label.copyWith(
-                    color: NexusColors.inkTertiary, letterSpacing: 1.2),
+                    color: context.nxt.inkTertiary, letterSpacing: 1.2),
               ),
               const SizedBox(height: 10),
               ...ausenciasPendientes.map((ausencia) {
@@ -198,6 +228,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _AusenciaEmpresaCard(
                     ausencia: ausencia,
+                    alumnoId: practica?.alumnoId ?? 0,
                     alumnoNombre: practica?.alumnoNombre ?? 'Alumno',
                     onJustificar: () => _revisarAusencia(ausencia.id, 'JUSTIFICADA'),
                     onInjustificar: () => _revisarAusencia(ausencia.id, 'INJUSTIFICADA'),
@@ -233,7 +264,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                         style: NexusText.heading2.copyWith(letterSpacing: -0.3)),
                     const SizedBox(height: 4),
                     Text('Seguimiento de horas y estado del convenio',
-                        style: NexusText.body.copyWith(color: NexusColors.inkSecondary)),
+                        style: NexusText.body.copyWith(color: context.nxt.inkSecondary)),
                   ],
                 ),
               ),
@@ -246,9 +277,21 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
           else
             ...provider.practicas.map((p) {
               final seguimientos = provider.seguimientosDe(p.id);
+              final evaluacion = provider.evaluacionDe(p.id);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: _ProgresoCard(practica: p, seguimientos: seguimientos),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ProgresoCard(practica: p, seguimientos: seguimientos),
+                    const SizedBox(height: 12),
+                    _EvaluacionResumenCard(
+                      practica: p,
+                      evaluacion: evaluacion,
+                      onEvaluar: () => _mostrarFormEvaluacion(p.id, evaluacion),
+                    ),
+                  ],
+                ),
               );
             }),
         ],
@@ -256,7 +299,109 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
     );
   }
 
+  // ── TAB 2: Chat ───────────────────────────────────────────────────────────
+
+  Widget _buildChat(TutorEmpresaProvider provider) {
+    final practicas = provider.practicas;
+    if (practicas.isEmpty) {
+      return Center(
+        child: Text('Sin prácticas asignadas', style: NexusText.body),
+      );
+    }
+    final practicaId = _chatPracticaId ?? practicas.first.id;
+    final practica = practicas.firstWhere((p) => p.id == practicaId,
+        orElse: () => practicas.first);
+
+    return Column(
+      children: [
+        // ── Header de contexto ─────────────────────────────────────────────
+        Container(
+          decoration: BoxDecoration(
+            color: context.nxt.surface,
+            border: Border(
+                bottom: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: NexusColors.successLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.supervisor_account_outlined,
+                        size: 16, color: NexusColors.success),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Chat con tutor de centro',
+                          style: NexusText.small
+                              .copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          '${practica.tutorCentroNombre} · ${practica.codigo} · ${practica.alumnoNombre}',
+                          style: NexusText.caption
+                              .copyWith(color: context.nxt.inkSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (practicas.length > 1)
+                    PopupMenuButton<int>(
+                      tooltip: 'Cambiar práctica',
+                      icon: Icon(Icons.swap_horiz_outlined,
+                          size: 18, color: context.nxt.inkSecondary),
+                      onSelected: (id) =>
+                          setState(() => _chatPracticaId = id),
+                      itemBuilder: (_) => practicas
+                          .map((p) => PopupMenuItem(
+                                value: p.id,
+                                child: Text(
+                                  '${p.codigo} — ${p.alumnoNombre}',
+                                  style: NexusText.small,
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ChatPlaceholderScreen(
+            key: ValueKey(practicaId),
+            practicaId: practicaId,
+            canal: 'TUTORES',
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Acciones ───────────────────────────────────────────────────────────────
+
+  void _mostrarFormEvaluacion(int practicaId, EvaluacionFinalModel? actual) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _EvaluarDialog(
+        practicaId: practicaId,
+        actual: actual,
+        provider: context.read<TutorEmpresaProvider>(),
+      ),
+    );
+  }
 
   Future<void> _confirmarValidar(int id) async {
     final confirmar = await showDialog<bool>(
@@ -349,7 +494,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: NexusColors.surface,
+        backgroundColor: context.nxt.surface,
         shape: const RoundedRectangleBorder(
           borderRadius:
               BorderRadius.vertical(top: Radius.circular(NexusSizes.radiusLG)),
@@ -367,7 +512,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                 const SizedBox(height: 6),
                 Text(
                   'El alumno recibirá una incidencia automática con el motivo indicado.',
-                  style: NexusText.body.copyWith(color: NexusColors.inkSecondary),
+                  style: NexusText.body.copyWith(color: context.nxt.inkSecondary),
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -439,10 +584,10 @@ class _ProgresoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final horasValidadas = seguimientos
         .where((s) => s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO')
-        .fold(0, (sum, s) => sum + s.horasRealizadas);
-    final horasRegistradas = seguimientos.fold(0, (sum, s) => sum + s.horasRealizadas);
+        .fold(0.0, (sum, s) => sum + s.horasRealizadas);
+    final horasRegistradas = seguimientos.fold(0.0, (sum, s) => sum + s.horasRealizadas);
     final horasTotales = practica.horasTotales ?? 0;
-    final horasRestantes = (horasTotales - horasValidadas).clamp(0, horasTotales);
+    final horasRestantes = (horasTotales - horasValidadas).clamp(0.0, horasTotales.toDouble());
     final progreso = horasTotales > 0 ? (horasValidadas / horasTotales).clamp(0.0, 1.0) : 0.0;
     final pct = (progreso * 100).round();
 
@@ -450,19 +595,11 @@ class _ProgresoCard extends StatelessWidget {
     final inicio = practica.fechaInicio != null ? fmt.format(practica.fechaInicio!) : '—';
     final fin = practica.fechaFin != null ? fmt.format(practica.fechaFin!) : '—';
 
-    final initials = practica.alumnoNombre
-        .trim()
-        .split(' ')
-        .where((p) => p.isNotEmpty)
-        .take(2)
-        .map((p) => p[0].toUpperCase())
-        .join();
-
     return Container(
       decoration: BoxDecoration(
-        color: NexusColors.surface,
+        color: context.nxt.surface,
         borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
-        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
+        border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
         boxShadow: [
           BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6, offset: const Offset(0, 2)),
         ],
@@ -473,19 +610,16 @@ class _ProgresoCard extends StatelessWidget {
           // ── Cabecera alumno ───────────────────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                  bottom: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
+                  bottom: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
             ),
             child: Row(
               children: [
-                CircleAvatar(
+                NexusAvatar(
+                  userId: practica.alumnoId,
+                  nombre: practica.alumnoNombre,
                   radius: 20,
-                  backgroundColor: NexusColors.primaryLight,
-                  child: Text(initials,
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600,
-                          color: NexusColors.primaryText)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -495,7 +629,7 @@ class _ProgresoCard extends StatelessWidget {
                       Text(practica.alumnoNombre,
                           style: NexusText.body.copyWith(fontWeight: FontWeight.w600)),
                       Text('${practica.codigo} · ${practica.empresaNombre}',
-                          style: NexusText.small.copyWith(color: NexusColors.inkSecondary)),
+                          style: NexusText.small.copyWith(color: context.nxt.inkSecondary)),
                     ],
                   ),
                 ),
@@ -512,11 +646,11 @@ class _ProgresoCard extends StatelessWidget {
                 // ── Fechas ───────────────────────────────────────────────
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 13, color: NexusColors.inkSecondary),
+                    Icon(Icons.calendar_today_outlined,
+                        size: 13, color: context.nxt.inkSecondary),
                     const SizedBox(width: 6),
                     Text('$inicio  →  $fin',
-                        style: NexusText.small.copyWith(color: NexusColors.inkSecondary)),
+                        style: NexusText.small.copyWith(color: context.nxt.inkSecondary)),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -539,7 +673,7 @@ class _ProgresoCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progreso,
                     minHeight: 8,
-                    backgroundColor: NexusColors.surfaceAlt,
+                    backgroundColor: context.nxt.surfaceAlt,
                     valueColor: AlwaysStoppedAnimation(_colorProgreso(pct)),
                   ),
                 ),
@@ -550,19 +684,19 @@ class _ProgresoCard extends StatelessWidget {
                   children: [
                     _HorasStat(
                       label: 'Registradas\npor el alumno',
-                      value: '${horasRegistradas}h',
-                      color: NexusColors.inkSecondary,
+                      value: fmtH(horasRegistradas),
+                      color: context.nxt.inkSecondary,
                     ),
                     _Divider(),
                     _HorasStat(
                       label: 'Validadas\npor ti',
-                      value: '${horasValidadas}h',
+                      value: fmtH(horasValidadas),
                       color: NexusColors.success,
                     ),
                     _Divider(),
                     _HorasStat(
                       label: 'Restantes\ndel convenio',
-                      value: horasTotales > 0 ? '${horasRestantes}h' : '—',
+                      value: horasTotales > 0 ? fmtH(horasRestantes) : '—',
                       color: horasRestantes == 0 && horasTotales > 0
                           ? NexusColors.success
                           : NexusColors.warning,
@@ -572,7 +706,7 @@ class _ProgresoCard extends StatelessWidget {
                       _HorasStat(
                         label: 'Total\ndel convenio',
                         value: '${horasTotales}h',
-                        color: NexusColors.inkTertiary,
+                        color: context.nxt.inkTertiary,
                       ),
                     ],
                   ],
@@ -610,7 +744,7 @@ class _HorasStat extends StatelessWidget {
           const SizedBox(height: 4),
           Text(label,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, color: NexusColors.inkSecondary, height: 1.3)),
+              style: TextStyle(fontSize: 10, color: context.nxt.inkSecondary, height: 1.3)),
         ],
       ),
     );
@@ -620,7 +754,7 @@ class _HorasStat extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 36, color: NexusColors.border, margin: const EdgeInsets.symmetric(horizontal: 4));
+    return Container(width: 1, height: 36, color: context.nxt.border, margin: const EdgeInsets.symmetric(horizontal: 4));
   }
 }
 
@@ -658,61 +792,127 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = _getInitials(auth.user?.nombreCompleto ?? '');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      width: 52,
-      decoration: const BoxDecoration(
-        color: NexusColors.surface,
-        border: Border(
-            right: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
+      width: 180,
+      decoration: BoxDecoration(
+        color: context.nxt.surface,
+        border: Border(right: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: NexusColors.success,
-              borderRadius: BorderRadius.circular(7),
-            ),
-            child: const Icon(Icons.star_outline, size: 13, color: Colors.white),
+          // Logo marca
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: NexusLogo(height: 26),
           ),
-          const SizedBox(height: 10),
+          Divider(height: 1, color: context.nxt.border),
+          const SizedBox(height: 6),
           _NavItem(
             icon: Icons.list_alt_outlined,
-            tooltip: 'Partes pendientes',
+            label: 'Partes pendientes',
             selected: tab == 0,
             onTap: () => onTab(0),
           ),
-          const SizedBox(height: 6),
           _NavItem(
             icon: Icons.bar_chart_rounded,
-            tooltip: 'Progreso del alumno',
+            label: 'Progreso',
             selected: tab == 1,
             onTap: () => onTab(1),
           ),
+          _NavItem(
+            icon: Icons.chat_bubble_outline_rounded,
+            label: 'Chat tutores',
+            selected: tab == 2,
+            onTap: () => onTab(2),
+          ),
           const Spacer(),
-          Tooltip(
-            message: auth.user?.nombreCompleto ?? '',
-            child: CircleAvatar(
-              radius: 15,
-              backgroundColor: NexusColors.successLight,
-              child: Text(initials,
-                  style: const TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w600,
-                      color: NexusColors.successText)),
+          Divider(height: 1, color: context.nxt.border),
+          // Perfil
+          InkWell(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PerfilScreen())),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  NexusAvatar(
+                    userId: auth.user!.id,
+                    nombre: auth.user!.nombreCompleto,
+                    radius: 13,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(auth.user!.nombreCompleto,
+                        style: TextStyle(fontSize: 12, color: context.nxt.ink),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Tooltip(
-            message: 'Cerrar sesión',
-            child: IconButton(
-              onPressed: () => auth.logout(),
-              icon: const Icon(Icons.logout_outlined,
-                  size: 18, color: NexusColors.inkSecondary),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+          Consumer<NotificacionProvider>(
+            builder: (ctx, notifProv, _) {
+              final count = notifProv.noLeidas;
+              return InkWell(
+                onTap: () async {
+                  await Navigator.push(ctx,
+                      MaterialPageRoute(builder: (_) => ChangeNotifierProvider.value(
+                        value: notifProv,
+                        child: const NotificacionesScreen(),
+                      )));
+                  notifProv.cargar();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(
+                    children: [
+                      Badge(
+                        isLabelVisible: count > 0,
+                        label: Text(count > 9 ? '9+' : '$count',
+                            style: const TextStyle(fontSize: 10)),
+                        child: Icon(Icons.notifications_none_outlined,
+                            size: 17, color: ctx.nxt.inkSecondary),
+                      ),
+                      const SizedBox(width: 10),
+                      Text('Notificaciones',
+                          style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          InkWell(
+            onTap: () => context.read<ThemeProvider>().toggle(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                      size: 17, color: context.nxt.inkSecondary),
+                  const SizedBox(width: 10),
+                  Text(isDark ? 'Modo claro' : 'Modo oscuro',
+                      style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+                ],
+              ),
+            ),
+          ),
+          InkWell(
+            onTap: () => auth.logout(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(Icons.logout_outlined, size: 17, color: context.nxt.inkSecondary),
+                  const SizedBox(width: 10),
+                  Text('Cerrar sesión',
+                      style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -720,38 +920,39 @@ class _Sidebar extends StatelessWidget {
       ),
     );
   }
-
-  String _getInitials(String nombre) {
-    final parts = nombre.trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-  }
 }
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
-  final String tooltip;
+  final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _NavItem({required this.icon, required this.tooltip, required this.selected, required this.onTap});
+  const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: selected ? NexusColors.successLight : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon,
-              size: 17,
-              color: selected ? NexusColors.success : NexusColors.inkSecondary),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: selected ? NexusColors.surfaceContainerLow : Colors.transparent,
+          borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16,
+                color: selected ? NexusColors.primary : context.nxt.inkSecondary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected ? NexusColors.primary : context.nxt.inkSecondary)),
+            ),
+          ],
         ),
       ),
     );
@@ -769,9 +970,9 @@ class _MobileBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: NexusColors.surface,
-        border: Border(top: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
+      decoration: BoxDecoration(
+        color: context.nxt.surface,
+        border: Border(top: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -791,13 +992,32 @@ class _MobileBar extends StatelessWidget {
                 label: 'Progreso',
                 selected: tab == 1),
           ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => onTab(2),
+            child: _MobileTab(
+                icon: Icons.chat_bubble_outline_rounded,
+                label: 'Chat',
+                selected: tab == 2),
+          ),
           const Spacer(),
+          Builder(builder: (ctx) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            return IconButton(
+              icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                  size: 18, color: context.nxt.inkSecondary),
+              tooltip: isDark ? 'Modo claro' : 'Modo oscuro',
+              onPressed: () => ctx.read<ThemeProvider>().toggle(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            );
+          }),
           TextButton.icon(
             onPressed: () => auth.logout(),
-            icon: const Icon(Icons.logout_outlined,
-                size: 16, color: NexusColors.inkSecondary),
+            icon: Icon(Icons.logout_outlined,
+                size: 16, color: context.nxt.inkSecondary),
             label: Text('Salir',
-                style: NexusText.small.copyWith(color: NexusColors.inkSecondary)),
+                style: NexusText.small.copyWith(color: context.nxt.inkSecondary)),
           ),
         ],
       ),
@@ -821,7 +1041,7 @@ class _MobileTab extends StatelessWidget {
         Text(label,
             style: NexusText.small.copyWith(
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                color: selected ? NexusColors.success : NexusColors.inkSecondary)),
+                color: selected ? NexusColors.success : context.nxt.inkSecondary)),
       ],
     );
   }
@@ -873,11 +1093,11 @@ class _RefreshBtn extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
+            border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.refresh_rounded,
-              size: 16, color: NexusColors.inkSecondary),
+          child: Icon(Icons.refresh_rounded,
+              size: 16, color: context.nxt.inkSecondary),
         ),
       ),
     );
@@ -903,25 +1123,24 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
-          border: Border(left: BorderSide(color: accent, width: 3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value,
-                style: TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.w600,
-                    color: accent, letterSpacing: -0.5)),
-            const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 11, color: labelColor)),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+        border: Border(left: BorderSide(color: accent, width: 3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value,
+              style: TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.w600,
+                  color: accent, letterSpacing: -0.5)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 11, color: labelColor)),
+        ],
       ),
     );
   }
@@ -931,12 +1150,14 @@ class _StatTile extends StatelessWidget {
 
 class _ParteCard extends StatelessWidget {
   final Seguimiento seguimiento;
+  final int alumnoId;
   final String alumnoNombre;
   final VoidCallback onValidar;
   final VoidCallback onRechazar;
 
   const _ParteCard({
     required this.seguimiento,
+    required this.alumnoId,
     required this.alumnoNombre,
     required this.onValidar,
     required this.onRechazar,
@@ -944,20 +1165,15 @@ class _ParteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fecha = DateFormat('d MMM yyyy', 'es_ES').format(seguimiento.fechaRegistro);
-    final initials = alumnoNombre
-        .trim()
-        .split(' ')
-        .where((p) => p.isNotEmpty)
-        .take(2)
-        .map((p) => p[0].toUpperCase())
-        .join();
+    final fecha = seguimiento.esSemanal
+        ? 'Sem. ${DateFormat('d MMM', 'es_ES').format(seguimiento.fechaRegistro)} - ${DateFormat('d MMM yyyy', 'es_ES').format(seguimiento.fechaRegistro.add(const Duration(days: 4)))}'
+        : DateFormat('d MMM yyyy', 'es_ES').format(seguimiento.fechaRegistro);
 
     return Container(
       decoration: BoxDecoration(
-        color: NexusColors.surface,
+        color: context.nxt.surface,
         borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
-        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
+        border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
         boxShadow: [
           BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6, offset: const Offset(0, 2)),
         ],
@@ -967,20 +1183,13 @@ class _ParteCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                  bottom: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
+                  bottom: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: NexusColors.primaryLight,
-                  child: Text(initials,
-                      style: const TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w600,
-                          color: NexusColors.primaryText)),
-                ),
+                NexusAvatar(userId: alumnoId, nombre: alumnoNombre, radius: 16),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -989,11 +1198,11 @@ class _ParteCard extends StatelessWidget {
                       Text(alumnoNombre,
                           style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
                       Text(fecha,
-                          style: NexusText.caption.copyWith(color: NexusColors.inkSecondary)),
+                          style: NexusText.caption.copyWith(color: context.nxt.inkSecondary)),
                     ],
                   ),
                 ),
-                _HoursPill(hours: seguimiento.horasRealizadas),
+                _HoursPill(hours: seguimiento.horasRealizadas, esSemanal: seguimiento.esSemanal),
                 const SizedBox(width: 8),
                 _StatusPill(label: 'Pendiente', color: NexusColors.warning),
               ],
@@ -1006,14 +1215,14 @@ class _ParteCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: NexusColors.surfaceAlt,
+                  color: context.nxt.surfaceAlt,
                   borderRadius: BorderRadius.circular(NexusSizes.radiusSM),
-                  border: const Border(left: BorderSide(color: NexusColors.border, width: 3)),
+                  border: Border(left: BorderSide(color: context.nxt.border, width: 3)),
                 ),
                 child: Text(
                   '"${seguimiento.descripcion}"',
                   style: NexusText.body.copyWith(
-                      color: NexusColors.inkSecondary, fontStyle: FontStyle.italic),
+                      color: context.nxt.inkSecondary, fontStyle: FontStyle.italic),
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1062,6 +1271,7 @@ class _ParteCard extends StatelessWidget {
 
 class _AusenciaEmpresaCard extends StatelessWidget {
   final Ausencia ausencia;
+  final int alumnoId;
   final String alumnoNombre;
   final VoidCallback onJustificar;
   final VoidCallback onInjustificar;
@@ -1069,6 +1279,7 @@ class _AusenciaEmpresaCard extends StatelessWidget {
 
   const _AusenciaEmpresaCard({
     required this.ausencia,
+    required this.alumnoId,
     required this.alumnoNombre,
     required this.onJustificar,
     required this.onInjustificar,
@@ -1078,19 +1289,12 @@ class _AusenciaEmpresaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fecha = DateFormat('d MMM yyyy', 'es_ES').format(ausencia.fecha);
-    final initials = alumnoNombre
-        .trim()
-        .split(' ')
-        .where((p) => p.isNotEmpty)
-        .take(2)
-        .map((p) => p[0].toUpperCase())
-        .join();
 
     return Container(
       decoration: BoxDecoration(
-        color: NexusColors.surface,
+        color: context.nxt.surface,
         borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
-        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
+        border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
         boxShadow: [
           BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 6, offset: const Offset(0, 2)),
         ],
@@ -1100,20 +1304,13 @@ class _AusenciaEmpresaCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                  bottom: BorderSide(color: NexusColors.border, width: NexusSizes.borderWidth)),
+                  bottom: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: NexusColors.warningLight,
-                  child: Text(initials,
-                      style: const TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w600,
-                          color: NexusColors.warningText)),
-                ),
+                NexusAvatar(userId: alumnoId, nombre: alumnoNombre, radius: 16),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -1122,7 +1319,7 @@ class _AusenciaEmpresaCard extends StatelessWidget {
                       Text(alumnoNombre,
                           style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
                       Text(fecha,
-                          style: NexusText.caption.copyWith(color: NexusColors.inkSecondary)),
+                          style: NexusText.caption.copyWith(color: context.nxt.inkSecondary)),
                     ],
                   ),
                 ),
@@ -1161,12 +1358,12 @@ class _AusenciaEmpresaCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: NexusColors.surfaceAlt,
+                color: context.nxt.surfaceAlt,
                 borderRadius: BorderRadius.circular(NexusSizes.radiusSM),
                 border: const Border(left: BorderSide(color: NexusColors.warning, width: 3)),
               ),
               child: Text(ausencia.motivo,
-                  style: NexusText.body.copyWith(color: NexusColors.inkSecondary),
+                  style: NexusText.body.copyWith(color: context.nxt.inkSecondary),
                   maxLines: 3, overflow: TextOverflow.ellipsis),
             ),
           ),
@@ -1218,8 +1415,8 @@ class _EmptyCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
       decoration: BoxDecoration(
-        color: NexusColors.surface,
-        border: Border.all(color: NexusColors.border, width: NexusSizes.borderWidth),
+        color: context.nxt.surface,
+        border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
         borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
       ),
       child: Column(
@@ -1235,7 +1432,7 @@ class _EmptyCard extends StatelessWidget {
           Text('Todo al día', style: NexusText.heading3),
           const SizedBox(height: 6),
           Text('No hay partes pendientes de firma.',
-              style: NexusText.body.copyWith(color: NexusColors.inkSecondary)),
+              style: NexusText.body.copyWith(color: context.nxt.inkSecondary)),
         ],
       ),
     );
@@ -1245,21 +1442,23 @@ class _EmptyCard extends StatelessWidget {
 // ── Pills ──────────────────────────────────────────────────────────────────────
 
 class _HoursPill extends StatelessWidget {
-  final int hours;
-  const _HoursPill({required this.hours});
+  final double hours;
+  final bool esSemanal;
+  const _HoursPill({required this.hours, this.esSemanal = false});
 
   @override
   Widget build(BuildContext context) {
+    final label = hours == hours.truncateToDouble() ? '${hours.toInt()}h' : '${hours.truncate()}h 30min';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1EFE8),
+        color: context.nxt.surfaceAlt,
         borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
       ),
-      child: Text('${hours}h',
-          style: const TextStyle(
+      child: Text(esSemanal ? '$label/sem' : label,
+          style: TextStyle(
               fontSize: 11, fontWeight: FontWeight.w600,
-              color: NexusColors.inkSecondary)),
+              color: context.nxt.inkSecondary)),
     );
   }
 }
@@ -1280,6 +1479,398 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+    );
+  }
+}
+
+// ── Evaluación resumen card ────────────────────────────────────────────────────
+
+class _EvaluacionResumenCard extends StatelessWidget {
+  final Practica practica;
+  final EvaluacionFinalModel? evaluacion;
+  final VoidCallback onEvaluar;
+
+  const _EvaluacionResumenCard({
+    required this.practica,
+    required this.evaluacion,
+    required this.onEvaluar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.nxt.surface,
+        borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
+        border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Icon(Icons.grade_outlined,
+              color: evaluacion != null ? NexusColors.warning : context.nxt.inkTertiary,
+              size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: evaluacion == null
+                ? Text('Sin evaluación final — puedes registrarla ahora',
+                    style: NexusText.body.copyWith(color: context.nxt.inkSecondary))
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Evaluación registrada',
+                          style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
+                      Text('Nota global: ${evaluacion!.notaGlobal.toStringAsFixed(2)}/10',
+                          style: NexusText.caption.copyWith(color: context.nxt.inkSecondary)),
+                    ],
+                  ),
+          ),
+          TextButton(
+            onPressed: onEvaluar,
+            child: Text(evaluacion == null ? 'Evaluar' : 'Modificar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Diálogo cuestionario de evaluación ────────────────────────────────────────
+
+class _EvaluarDialog extends StatefulWidget {
+  final int practicaId;
+  final EvaluacionFinalModel? actual;
+  final TutorEmpresaProvider provider;
+
+  const _EvaluarDialog({
+    required this.practicaId,
+    required this.actual,
+    required this.provider,
+  });
+
+  @override
+  State<_EvaluarDialog> createState() => _EvaluarDialogState();
+}
+
+class _EvaluarDialogState extends State<_EvaluarDialog> {
+  // Criterios opcionales — null = no incluido
+  late bool _actitudEnabled;
+  late double _actitud;
+  late bool _tecnicaEnabled;
+  late double _tecnica;
+  late bool _iniciativaEnabled;
+  late double _iniciativa;
+  late bool _equipoEnabled;
+  late double _equipo;
+  late bool _cumplimientoEnabled;
+  late double _cumplimiento;
+
+  late double _global;
+  final _comentarioCtrl = TextEditingController();
+  bool _guardando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final a = widget.actual;
+    _actitudEnabled      = a?.actitudPuntualidad != null;
+    _actitud             = a?.actitudPuntualidad ?? 7.0;
+    _tecnicaEnabled      = a?.competenciaTecnica != null;
+    _tecnica             = a?.competenciaTecnica ?? 7.0;
+    _iniciativaEnabled   = a?.iniciativaAutonomia != null;
+    _iniciativa          = a?.iniciativaAutonomia ?? 7.0;
+    _equipoEnabled       = a?.trabajoEquipo != null;
+    _equipo              = a?.trabajoEquipo ?? 7.0;
+    _cumplimientoEnabled = a?.cumplimientoTareas != null;
+    _cumplimiento        = a?.cumplimientoTareas ?? 7.0;
+    _global              = a?.notaGlobal ?? 7.0;
+    _comentarioCtrl.text = a?.comentario ?? '';
+  }
+
+  @override
+  void dispose() {
+    _comentarioCtrl.dispose();
+    super.dispose();
+  }
+
+  Color _color(double v) {
+    if (v >= 7) return NexusColors.success;
+    if (v >= 5) return NexusColors.warning;
+    return NexusColors.danger;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        widget.actual == null ? 'Evaluar al alumno' : 'Modificar evaluación',
+        style: NexusText.heading3,
+      ),
+      content: LayoutBuilder(builder: (ctx, constraints) {
+        final dialogWidth = constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : (MediaQuery.of(ctx).size.width * 0.9).clamp(0.0, 520.0);
+        return SizedBox(
+          width: dialogWidth,
+          child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Criterios de evaluación (opcionales — activa con el interruptor)',
+                  style: NexusText.caption.copyWith(color: context.nxt.inkSecondary)),
+              const SizedBox(height: 16),
+
+              _CriterioSlider(
+                label: 'Actitud y puntualidad',
+                icon: Icons.access_time_rounded,
+                enabled: _actitudEnabled,
+                value: _actitud,
+                color: _color(_actitud),
+                onToggle: (v) => setState(() => _actitudEnabled = v),
+                onChanged: (v) => setState(() => _actitud = v),
+              ),
+              _CriterioSlider(
+                label: 'Competencia técnica',
+                icon: Icons.build_outlined,
+                enabled: _tecnicaEnabled,
+                value: _tecnica,
+                color: _color(_tecnica),
+                onToggle: (v) => setState(() => _tecnicaEnabled = v),
+                onChanged: (v) => setState(() => _tecnica = v),
+              ),
+              _CriterioSlider(
+                label: 'Iniciativa y autonomía',
+                icon: Icons.lightbulb_outline,
+                enabled: _iniciativaEnabled,
+                value: _iniciativa,
+                color: _color(_iniciativa),
+                onToggle: (v) => setState(() => _iniciativaEnabled = v),
+                onChanged: (v) => setState(() => _iniciativa = v),
+              ),
+              _CriterioSlider(
+                label: 'Trabajo en equipo',
+                icon: Icons.group_outlined,
+                enabled: _equipoEnabled,
+                value: _equipo,
+                color: _color(_equipo),
+                onToggle: (v) => setState(() => _equipoEnabled = v),
+                onChanged: (v) => setState(() => _equipo = v),
+              ),
+              _CriterioSlider(
+                label: 'Cumplimiento de tareas',
+                icon: Icons.task_alt_outlined,
+                enabled: _cumplimientoEnabled,
+                value: _cumplimiento,
+                color: _color(_cumplimiento),
+                onToggle: (v) => setState(() => _cumplimientoEnabled = v),
+                onChanged: (v) => setState(() => _cumplimiento = v),
+              ),
+
+              const SizedBox(height: 8),
+              Divider(height: 1, thickness: 0.5, color: context.nxt.border),
+              const SizedBox(height: 20),
+
+              // ── Nota global obligatoria ───────────────────────────────────
+              Row(
+                children: [
+                  Icon(Icons.star_rounded, size: 18, color: _color(_global)),
+                  const SizedBox(width: 8),
+                  Text('Nota global *',
+                      style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
+                  const Spacer(),
+                  Container(
+                    width: 56,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _color(_global).withAlpha(22),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _global.toStringAsFixed(1),
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: _color(_global)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 4,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                  activeTrackColor: _color(_global),
+                  inactiveTrackColor: _color(_global).withAlpha(40),
+                  thumbColor: _color(_global),
+                  overlayColor: _color(_global).withAlpha(30),
+                ),
+                child: Slider(
+                  value: _global,
+                  min: 0,
+                  max: 10,
+                  divisions: 100,
+                  onChanged: (v) => setState(() => _global = v),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('0', style: NexusText.label.copyWith(color: context.nxt.inkTertiary)),
+                    Text('5', style: NexusText.label.copyWith(color: context.nxt.inkTertiary)),
+                    Text('10', style: NexusText.label.copyWith(color: context.nxt.inkTertiary)),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _comentarioCtrl,
+                maxLines: 3,
+                maxLength: 2000,
+                decoration: const InputDecoration(
+                  labelText: 'Observaciones (opcional)',
+                  hintText: 'Valoración general del desempeño del alumno...',
+                  alignLabelWithHint: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      }),
+      actions: [
+        TextButton(
+          onPressed: _guardando ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _guardando ? null : _guardar,
+          child: _guardando
+              ? const SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Guardar evaluación'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _guardar() async {
+    setState(() => _guardando = true);
+    final ok = await widget.provider.evaluar(
+      widget.practicaId,
+      actitudPuntualidad: _actitudEnabled ? _actitud : null,
+      competenciaTecnica: _tecnicaEnabled ? _tecnica : null,
+      iniciativaAutonomia: _iniciativaEnabled ? _iniciativa : null,
+      trabajoEquipo: _equipoEnabled ? _equipo : null,
+      cumplimientoTareas: _cumplimientoEnabled ? _cumplimiento : null,
+      notaGlobal: _global,
+      comentario: _comentarioCtrl.text.trim().isEmpty ? null : _comentarioCtrl.text.trim(),
+    );
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? 'Evaluación guardada correctamente' : 'Error al guardar'),
+        backgroundColor: ok ? NexusColors.success : NexusColors.danger,
+      ));
+    }
+  }
+}
+
+class _CriterioSlider extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool enabled;
+  final double value;
+  final Color color;
+  final ValueChanged<bool> onToggle;
+  final ValueChanged<double> onChanged;
+
+  const _CriterioSlider({
+    required this.label,
+    required this.icon,
+    required this.enabled,
+    required this.value,
+    required this.color,
+    required this.onToggle,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon,
+                  size: 15,
+                  color: enabled ? color : context.nxt.inkTertiary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: NexusText.small.copyWith(
+                    color: enabled ? context.nxt.ink : context.nxt.inkTertiary,
+                    fontWeight: enabled ? FontWeight.w500 : FontWeight.w400,
+                  ),
+                ),
+              ),
+              if (enabled)
+                Container(
+                  width: 42,
+                  height: 26,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(22),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    value.toStringAsFixed(1),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: color),
+                  ),
+                ),
+              Switch(
+                value: enabled,
+                onChanged: onToggle,
+                activeColor: NexusColors.primary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ],
+          ),
+          if (enabled)
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                activeTrackColor: color,
+                inactiveTrackColor: color.withAlpha(35),
+                thumbColor: color,
+                overlayColor: color.withAlpha(25),
+              ),
+              child: Slider(
+                value: value,
+                min: 1,
+                max: 10,
+                divisions: 18,
+                onChanged: onChanged,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

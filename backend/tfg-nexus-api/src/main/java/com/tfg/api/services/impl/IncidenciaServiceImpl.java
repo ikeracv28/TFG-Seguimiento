@@ -12,6 +12,9 @@ import com.tfg.api.models.repository.UsuarioRepository;
 import com.tfg.api.services.AuditService;
 import com.tfg.api.services.IncidenciaService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +59,21 @@ public class IncidenciaServiceImpl implements IncidenciaService {
     @Override
     @Transactional(readOnly = true)
     public List<IncidenciaResponse> listarPorPractica(Long practicaId) {
+        var practica = practicaRepository.findById(practicaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Práctica no encontrada"));
+
+        // A01: solo participantes de la práctica o admin
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin
+                && !practica.getAlumno().getEmail().equals(email)
+                && !practica.getTutorCentro().getEmail().equals(email)
+                && !practica.getTutorEmpresa().getEmail().equals(email)) {
+            throw new AccessDeniedException("No tienes acceso a las incidencias de esta práctica");
+        }
+
         return incidenciaMapper.toResponseList(
                 incidenciaRepository.findByPracticaIdOrderByFechaCreacionDesc(practicaId));
     }
@@ -63,9 +81,23 @@ public class IncidenciaServiceImpl implements IncidenciaService {
     @Override
     @Transactional(readOnly = true)
     public IncidenciaResponse obtenerPorId(Long id) {
-        return incidenciaMapper.toResponse(
-                incidenciaRepository.findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Incidencia no encontrada")));
+        var incidencia = incidenciaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Incidencia no encontrada"));
+
+        // A01: solo participantes de la práctica o admin
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        var practica = incidencia.getPractica();
+        if (!isAdmin
+                && !practica.getAlumno().getEmail().equals(email)
+                && !practica.getTutorCentro().getEmail().equals(email)
+                && !practica.getTutorEmpresa().getEmail().equals(email)) {
+            throw new AccessDeniedException("No tienes acceso a esta incidencia");
+        }
+
+        return incidenciaMapper.toResponse(incidencia);
     }
 
     @Override
@@ -89,6 +121,11 @@ public class IncidenciaServiceImpl implements IncidenciaService {
 
         var tutor = usuarioRepository.findByEmail(emailTutor)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        // A01: el tutor centro solo puede gestionar incidencias de sus propias prácticas
+        if (!incidencia.getPractica().getTutorCentro().getEmail().equals(emailTutor)) {
+            throw new AccessDeniedException("No tienes permiso para gestionar esta incidencia");
+        }
 
         incidencia.setEstado(nuevoEstado);
         incidencia.setResueltaPor(tutor);

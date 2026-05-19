@@ -28,6 +28,21 @@ public class Mensaje {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String contenido;
 
+    @Column(nullable = false, length = 20)
+    private String canal = "ALUMNO";
+
+    @Column(nullable = false, length = 20)
+    private String tipo = "TEXTO";
+
+    @Column(name = "adjunto_nombre")
+    private String adjuntoNombre;
+
+    @Column(name = "adjunto_datos", columnDefinition = "bytea")
+    private byte[] adjuntoDatos;
+
+    @Column(name = "adjunto_tipo", length = 100)
+    private String adjuntoTipo;
+
     @Column(name = "fecha_envio", nullable = false)
     private LocalDateTime fechaEnvio;
 

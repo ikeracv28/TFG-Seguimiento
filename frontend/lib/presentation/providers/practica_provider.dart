@@ -42,8 +42,8 @@ class PracticaProvider extends ChangeNotifier {
   int get ausenciasPendientes => _ausencias.where((a) => a.estaPendiente).length;
 
   /// Horas contabilizadas: solo las de seguimientos con estado COMPLETADO.
-  int get horasCompletadas =>
-      _seguimientos.where((s) => s.cuentaParaProgreso).fold(0, (sum, s) => sum + s.horasRealizadas);
+  double get horasCompletadas =>
+      _seguimientos.where((s) => s.cuentaParaProgreso).fold(0.0, (sum, s) => sum + s.horasRealizadas);
 
   /// Número de incidencias que siguen abiertas o en proceso.
   int get incidenciasAbiertas => _incidencias.where((i) => i.estaAbierta).length;

@@ -35,6 +35,8 @@ public interface UsuarioMapper {
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "activo", constant = "true")
     @Mapping(target = "fechaCreacion", ignore = true)
+    @Mapping(target = "fotoPerfil", ignore = true)
+    @Mapping(target = "fotoContentType", ignore = true)
     Usuario registerToEntity(RegisterRequest request);
 
     /**
@@ -52,7 +54,17 @@ public interface UsuarioMapper {
      */
     @Mapping(target = "centroNombre", expression = "java(usuario.getCentro() != null ? usuario.getCentro().getNombre() : \"Sin Centro\")")
     @Mapping(target = "roles", source = "usuario.roles", qualifiedByName = "mapRoles")
-    UsuarioResponse toResponse(Usuario usuario);
+    @Mapping(target = "tieneFoto", ignore = true)
+    UsuarioResponse toResponseBase(Usuario usuario);
+
+    default UsuarioResponse toResponse(Usuario usuario) {
+        UsuarioResponse base = toResponseBase(usuario);
+        return new UsuarioResponse(
+            base.id(), base.dni(), base.nombre(), base.apellidos(),
+            base.email(), base.roles(), base.centroNombre(), base.activo(),
+            usuario.getFotoPerfil() != null
+        );
+    }
 
     /**
      * Método auxiliar para extraer solo los nombres de los roles 

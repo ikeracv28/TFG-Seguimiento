@@ -192,6 +192,77 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> crearEmpresa({
+    required String nombre,
+    required String cif,
+    String? direccion,
+    String? emailContacto,
+    String? telefonoContacto,
+  }) async {
+    try {
+      final nueva = await _service.crearEmpresa(
+        nombre: nombre, cif: cif, direccion: direccion,
+        emailContacto: emailContacto, telefonoContacto: telefonoContacto,
+      );
+      _empresas = [nueva, ..._empresas];
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> editarEmpresa({
+    required int id,
+    required String nombre,
+    required String cif,
+    String? direccion,
+    String? emailContacto,
+    String? telefonoContacto,
+  }) async {
+    try {
+      final actualizada = await _service.editarEmpresa(
+        id: id, nombre: nombre, cif: cif, direccion: direccion,
+        emailContacto: emailContacto, telefonoContacto: telefonoContacto,
+      );
+      _empresas = _empresas.map((e) => e.id == id ? actualizada : e).toList();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> eliminarPractica(int id) async {
+    try {
+      await _service.eliminarPractica(id);
+      _practicas = _practicas.where((p) => p.id != id).toList();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> eliminarEmpresa(int id) async {
+    try {
+      await _service.eliminarEmpresa(id);
+      _empresas = _empresas.where((e) => e.id != id).toList();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> cargarAuditLogs({String? modulo}) async {
     _cargandoAudit = true;
     notifyListeners();

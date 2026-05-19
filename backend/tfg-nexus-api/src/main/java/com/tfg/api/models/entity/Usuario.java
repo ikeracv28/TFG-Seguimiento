@@ -85,6 +85,12 @@ public class Usuario {
     @Builder.Default
     private Set<Rol> roles = new HashSet<>();
 
+    @Column(name = "foto_perfil", columnDefinition = "bytea")
+    private byte[] fotoPerfil;
+
+    @Column(name = "foto_content_type", length = 50)
+    private String fotoContentType;
+
     @PrePersist
     protected void onCreate() {
         this.fechaCreacion = LocalDateTime.now();

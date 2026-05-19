@@ -1,3 +1,5 @@
+version: "3.8"
+
 # =========================================================================
 # ORQUESTADOR MAESTRO - NEXUS TFG
 # =========================================================================
@@ -17,6 +19,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Madrid
     volumes:
       - nexus-db-data:/var/lib/postgresql/data
     networks:
@@ -43,6 +46,8 @@ services:
       - SPRING_FLYWAY_USER=${DB_USER}
       - SPRING_FLYWAY_PASSWORD=${DB_PASSWORD}
       - "JWT_SECRET=${JWT_SECRET:?ERROR: Define JWT_SECRET en el archivo .env antes de arrancar}"
+      - TZ=Europe/Madrid
+      - JAVA_TOOL_OPTIONS=-Duser.timezone=Europe/Madrid
     depends_on:
       db:
         condition: service_healthy

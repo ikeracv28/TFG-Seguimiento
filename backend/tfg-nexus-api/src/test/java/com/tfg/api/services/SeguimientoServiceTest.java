@@ -13,7 +13,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -40,6 +41,11 @@ class SeguimientoServiceTest {
 
     private Practica practicaTest;
 
+    private void setSecurityContext(String email) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(email, null, List.of()));
+    }
+
     @BeforeEach
     void setUp() {
         // Creamos datos mínimos para la prueba
@@ -59,25 +65,27 @@ class SeguimientoServiceTest {
     @Test
     @DisplayName("Debe registrar un seguimiento correctamente")
     void should_register_seguimiento() {
+        setSecurityContext("alumno@test.com");
         SeguimientoRequest request = new SeguimientoRequest(
-                practicaTest.getId(), LocalDate.now(), 4, "Tareas de desarrollo"
+                practicaTest.getId(), LocalDate.now(), 4.0, "Tareas de desarrollo", null
         );
 
         SeguimientoResponse response = seguimientoService.registrar(request);
 
         assertThat(response.id()).isNotNull();
-        assertThat(response.horasRealizadas()).isEqualTo(4);
+        assertThat(response.horasRealizadas()).isEqualTo(4.0);
         assertThat(response.estado()).isEqualTo("PENDIENTE_EMPRESA");
     }
 
     @Test
-    @WithMockUser(username = "empresa@test.com")
     @DisplayName("Tutor de empresa aprueba un parte: estado pasa a PENDIENTE_CENTRO")
     void should_validate_empresa() {
+        setSecurityContext("alumno@test.com");
         SeguimientoResponse reg = seguimientoService.registrar(new SeguimientoRequest(
-                practicaTest.getId(), LocalDate.now(), 6, "Pruebas unitarias"
+                practicaTest.getId(), LocalDate.now(), 6.0, "Pruebas unitarias", null
         ));
 
+        setSecurityContext("empresa@test.com");
         SeguimientoResponse result = seguimientoService.validarEmpresa(reg.id(), "PENDIENTE_CENTRO", null);
 
         assertThat(result.estado()).isEqualTo("PENDIENTE_CENTRO");

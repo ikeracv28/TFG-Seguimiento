@@ -105,9 +105,23 @@ public class AusenciaServiceImpl implements AusenciaService {
     @Override
     @Transactional(readOnly = true)
     public AusenciaResponse obtenerPorId(Long id) {
-        return ausenciaMapper.toResponse(
-                ausenciaRepository.findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Ausencia no encontrada")));
+        Ausencia ausencia = ausenciaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ausencia no encontrada"));
+
+        // A01: solo participantes de la práctica o admin
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        Practica practica = ausencia.getPractica();
+        if (!isAdmin
+                && !practica.getAlumno().getEmail().equals(email)
+                && !practica.getTutorCentro().getEmail().equals(email)
+                && !practica.getTutorEmpresa().getEmail().equals(email)) {
+            throw new AccessDeniedException("No tienes acceso a esta ausencia");
+        }
+
+        return ausenciaMapper.toResponse(ausencia);
     }
 
     @Override
@@ -179,6 +193,20 @@ public class AusenciaServiceImpl implements AusenciaService {
     public AusenciaService.JustificanteDto descargarJustificante(Long id) {
         Ausencia ausencia = ausenciaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ausencia no encontrada"));
+
+        // A01: solo participantes de la práctica o admin
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        Practica practica = ausencia.getPractica();
+        if (!isAdmin
+                && !practica.getAlumno().getEmail().equals(email)
+                && !practica.getTutorCentro().getEmail().equals(email)
+                && !practica.getTutorEmpresa().getEmail().equals(email)) {
+            throw new AccessDeniedException("No tienes acceso a este justificante");
+        }
+
         if (ausencia.getJustificante() == null || ausencia.getJustificante().length == 0) {
             throw new ResourceNotFoundException("Esta ausencia no tiene justificante adjunto");
         }

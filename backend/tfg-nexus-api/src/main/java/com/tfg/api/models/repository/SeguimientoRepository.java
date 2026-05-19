@@ -16,4 +16,8 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
     // Detecta si ya existe un parte pendiente en la misma semana ISO (lunes-domingo)
     boolean existsByPracticaIdAndEstadoAndFechaRegistroBetween(
             Long practicaId, String estado, LocalDate inicio, LocalDate fin);
+
+    // Detecta si ya existe cualquier parte (estado indiferente) en un rango de fechas
+    boolean existsByPracticaIdAndFechaRegistroBetween(
+            Long practicaId, LocalDate inicio, LocalDate fin);
 }

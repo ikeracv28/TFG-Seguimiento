@@ -10,28 +10,58 @@ import 'presentation/providers/tutor_empresa_provider.dart';
 import 'presentation/providers/tutor_centro_provider.dart';
 import 'presentation/providers/admin_provider.dart';
 import 'presentation/providers/chat_provider.dart';
+import 'presentation/providers/theme_provider.dart';
+import 'presentation/providers/perfil_provider.dart';
+import 'presentation/providers/notificacion_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final authProvider = AuthProvider();
-  await authProvider.init();
-  runApp(MyApp(authProvider: authProvider));
+  final themeProvider = ThemeProvider();
+  await Future.wait([authProvider.init(), themeProvider.init()]);
+  runApp(MyApp(authProvider: authProvider, themeProvider: themeProvider));
 }
 
 class MyApp extends StatelessWidget {
   final AuthProvider authProvider;
-  const MyApp({super.key, required this.authProvider});
+  final ThemeProvider themeProvider;
+  const MyApp({super.key, required this.authProvider, required this.themeProvider});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ChangeNotifierProvider<ThemeProvider>.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => PracticaProvider()),
         ChangeNotifierProvider(create: (_) => TutorEmpresaProvider()),
         ChangeNotifierProvider(create: (_) => TutorCentroProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, NotificacionProvider>(
+          create: (_) => NotificacionProvider(),
+          update: (_, auth, notif) {
+            if (auth.isAuthenticated) {
+              notif!.cargar();
+              notif.iniciarPolling();
+            } else {
+              notif!.detenerPolling();
+            }
+            return notif;
+          },
+        ),
+        // PerfilProvider global: se auto-carga cuando el usuario está autenticado
+        ChangeNotifierProxyProvider<AuthProvider, PerfilProvider>(
+          create: (_) => PerfilProvider(),
+          update: (_, auth, perfil) {
+            if (auth.isAuthenticated && perfil!.usuario == null && !perfil.isLoading) {
+              perfil.cargar();
+            } else if (!auth.isAuthenticated) {
+              perfil!.reset();
+            }
+            return perfil!;
+          },
+        ),
       ],
       child: const _AppWithRouter(),
     );
@@ -62,10 +92,13 @@ class _AppWithRouterState extends State<_AppWithRouter> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = context.watch<ThemeProvider>().mode;
     return MaterialApp.router(
       title: 'Nexus',
       debugShowCheckedModeBanner: false,
       theme: nexusTheme(),
+      darkTheme: nexusDarkTheme(),
+      themeMode: themeMode,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

@@ -154,6 +154,77 @@ class AdminService {
         .toList();
   }
 
+  Future<EmpresaModel> crearEmpresa({
+    required String nombre,
+    required String cif,
+    String? direccion,
+    String? emailContacto,
+    String? telefonoContacto,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post('/empresas', data: {
+        'nombre': nombre,
+        'cif': cif,
+        if (direccion != null) 'direccion': direccion,
+        if (emailContacto != null) 'emailContacto': emailContacto,
+        if (telefonoContacto != null) 'telefonoContacto': telefonoContacto,
+      });
+      return EmpresaModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = (data is Map ? data['message'] as String? : null)
+          ?? 'Error al crear la empresa';
+      throw Exception(message);
+    }
+  }
+
+  Future<EmpresaModel> editarEmpresa({
+    required int id,
+    required String nombre,
+    required String cif,
+    String? direccion,
+    String? emailContacto,
+    String? telefonoContacto,
+  }) async {
+    try {
+      final response = await _apiClient.dio.put('/empresas/$id', data: {
+        'nombre': nombre,
+        'cif': cif,
+        if (direccion != null) 'direccion': direccion,
+        if (emailContacto != null) 'emailContacto': emailContacto,
+        if (telefonoContacto != null) 'telefonoContacto': telefonoContacto,
+      });
+      return EmpresaModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = (data is Map ? data['message'] as String? : null)
+          ?? 'Error al editar la empresa';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> eliminarEmpresa(int id) async {
+    try {
+      await _apiClient.dio.delete('/empresas/$id');
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = (data is Map ? data['message'] as String? : null)
+          ?? 'Error al eliminar la empresa';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> eliminarPractica(int id) async {
+    try {
+      await _apiClient.dio.delete('/practicas/$id');
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = (data is Map ? data['message'] as String? : null)
+          ?? 'Error al eliminar la práctica';
+      throw Exception(message);
+    }
+  }
+
   // ---- Audit logs ----
 
   Future<List<AuditLogModel>> listarAuditLogs({String? modulo, int page = 0, int size = 50}) async {

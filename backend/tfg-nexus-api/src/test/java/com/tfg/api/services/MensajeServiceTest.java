@@ -15,6 +15,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,14 @@ class MensajeServiceTest {
     private Usuario tutorCentro;
     private Usuario tutorEmpresa;
 
+    private static final String CANAL_ALUMNO   = "ALUMNO";
+    private static final String CANAL_TUTORES  = "TUTORES";
+
+    private void setSecurityContext(String email) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(email, null, List.of()));
+    }
+
     @BeforeEach
     void setUp() {
         alumno = usuarioRepository.save(Usuario.builder()
@@ -56,75 +66,114 @@ class MensajeServiceTest {
                 .tutorEmpresa(tutorEmpresa).empresa(empresa).estado("ACTIVA").build());
     }
 
+    // ── Canal ALUMNO ─────────────────────────────────────────────────────────
+
     @Test
-    @DisplayName("Alumno puede enviar un mensaje en su práctica")
+    @DisplayName("Alumno puede enviar un mensaje en canal ALUMNO")
     void alumno_puede_enviar_mensaje() {
         MensajeResponse resp = mensajeService.guardar(
-                new MensajeRequest("Hola tutor"), alumno.getEmail(), practica.getId());
+                new MensajeRequest("Hola tutor", CANAL_ALUMNO),
+                alumno.getEmail(), practica.getId(), CANAL_ALUMNO);
 
         assertThat(resp.id()).isNotNull();
         assertThat(resp.contenido()).isEqualTo("Hola tutor");
         assertThat(resp.practicaId()).isEqualTo(practica.getId());
         assertThat(resp.remitenteId()).isEqualTo(alumno.getId());
+        assertThat(resp.canal()).isEqualTo(CANAL_ALUMNO);
     }
 
     @Test
-    @DisplayName("Tutor de centro puede enviar mensaje en la práctica")
-    void tutor_centro_puede_enviar_mensaje() {
+    @DisplayName("Tutor de centro puede enviar mensaje en canal ALUMNO")
+    void tutor_centro_puede_enviar_mensaje_alumno() {
         MensajeResponse resp = mensajeService.guardar(
-                new MensajeRequest("Revisad el parte"), tutorCentro.getEmail(), practica.getId());
+                new MensajeRequest("Revisad el parte", CANAL_ALUMNO),
+                tutorCentro.getEmail(), practica.getId(), CANAL_ALUMNO);
 
         assertThat(resp.remitenteId()).isEqualTo(tutorCentro.getId());
         assertThat(resp.contenido()).isEqualTo("Revisad el parte");
     }
 
     @Test
-    @DisplayName("Tutor de empresa puede enviar mensaje en la práctica")
-    void tutor_empresa_puede_enviar_mensaje() {
+    @DisplayName("Tutor empresa no puede usar canal ALUMNO — BusinessRuleException")
+    void tutor_empresa_no_puede_usar_canal_alumno() {
+        assertThatThrownBy(() ->
+            mensajeService.guardar(new MensajeRequest("Hola", CANAL_ALUMNO),
+                    tutorEmpresa.getEmail(), practica.getId(), CANAL_ALUMNO)
+        ).isInstanceOf(BusinessRuleException.class);
+    }
+
+    // ── Canal TUTORES ─────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Tutor empresa puede enviar mensaje en canal TUTORES")
+    void tutor_empresa_puede_enviar_mensaje_tutores() {
         MensajeResponse resp = mensajeService.guardar(
-                new MensajeRequest("Aprobado el parte"), tutorEmpresa.getEmail(), practica.getId());
+                new MensajeRequest("Aprobado el parte", CANAL_TUTORES),
+                tutorEmpresa.getEmail(), practica.getId(), CANAL_TUTORES);
 
         assertThat(resp.remitenteId()).isEqualTo(tutorEmpresa.getId());
+        assertThat(resp.canal()).isEqualTo(CANAL_TUTORES);
     }
 
     @Test
-    @DisplayName("Usuario ajeno a la práctica no puede enviar mensajes — BusinessRuleException")
-    void ajeno_no_puede_enviar_mensaje() {
-        Usuario ajeno = usuarioRepository.save(Usuario.builder()
-                .dni("MS000004D").nombre("Externo").apellidos("Ajeno")
-                .email("externo.chat@test.com").passwordHash("hash").activo(true).build());
+    @DisplayName("Tutor centro puede enviar mensaje en canal TUTORES")
+    void tutor_centro_puede_enviar_mensaje_tutores() {
+        MensajeResponse resp = mensajeService.guardar(
+                new MensajeRequest("Confirmado", CANAL_TUTORES),
+                tutorCentro.getEmail(), practica.getId(), CANAL_TUTORES);
 
+        assertThat(resp.remitenteId()).isEqualTo(tutorCentro.getId());
+        assertThat(resp.canal()).isEqualTo(CANAL_TUTORES);
+    }
+
+    @Test
+    @DisplayName("Alumno no puede usar canal TUTORES — BusinessRuleException")
+    void alumno_no_puede_usar_canal_tutores() {
         assertThatThrownBy(() ->
-            mensajeService.guardar(new MensajeRequest("Intento no autorizado"),
-                    ajeno.getEmail(), practica.getId())
-        ).isInstanceOf(BusinessRuleException.class)
-         .hasMessageContaining("acceso");
+            mensajeService.guardar(new MensajeRequest("Infiltrado", CANAL_TUTORES),
+                    alumno.getEmail(), practica.getId(), CANAL_TUTORES)
+        ).isInstanceOf(BusinessRuleException.class);
     }
 
-    @Test
-    @DisplayName("Práctica inexistente lanza ResourceNotFoundException")
-    void practica_inexistente_lanza_excepcion() {
-        assertThatThrownBy(() ->
-            mensajeService.guardar(new MensajeRequest("Sin práctica"),
-                    alumno.getEmail(), 999999L)
-        ).isInstanceOf(ResourceNotFoundException.class);
-    }
+    // ── Listado ───────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("Listar mensajes de práctica sin mensajes devuelve lista vacía")
-    void listar_practica_sin_mensajes_devuelve_lista_vacia() {
-        List<MensajeResponse> mensajes = mensajeService.listarPorPractica(practica.getId());
-
+    @DisplayName("Listar canal ALUMNO devuelve solo mensajes de ese canal")
+    void listar_canal_alumno_sin_mensajes() {
+        setSecurityContext(alumno.getEmail());
+        List<MensajeResponse> mensajes = mensajeService.listarPorPractica(practica.getId(), CANAL_ALUMNO);
         assertThat(mensajes).isEmpty();
     }
 
     @Test
-    @DisplayName("Listar mensajes devuelve todos en orden cronológico ascendente")
-    void listar_mensajes_orden_cronologico() {
-        mensajeService.guardar(new MensajeRequest("Primer mensaje"), alumno.getEmail(), practica.getId());
-        mensajeService.guardar(new MensajeRequest("Segundo mensaje"), tutorCentro.getEmail(), practica.getId());
+    @DisplayName("Mensajes de canales distintos no se mezclan")
+    void mensajes_canales_no_se_mezclan() {
+        mensajeService.guardar(new MensajeRequest("Mensaje alumno", CANAL_ALUMNO),
+                alumno.getEmail(), practica.getId(), CANAL_ALUMNO);
+        mensajeService.guardar(new MensajeRequest("Mensaje tutores", CANAL_TUTORES),
+                tutorEmpresa.getEmail(), practica.getId(), CANAL_TUTORES);
 
-        List<MensajeResponse> mensajes = mensajeService.listarPorPractica(practica.getId());
+        setSecurityContext(alumno.getEmail());
+        List<MensajeResponse> canalAlumno = mensajeService.listarPorPractica(practica.getId(), CANAL_ALUMNO);
+        assertThat(canalAlumno).hasSize(1);
+        assertThat(canalAlumno.get(0).contenido()).isEqualTo("Mensaje alumno");
+
+        setSecurityContext(tutorCentro.getEmail());
+        List<MensajeResponse> canalTutores = mensajeService.listarPorPractica(practica.getId(), CANAL_TUTORES);
+        assertThat(canalTutores).hasSize(1);
+        assertThat(canalTutores.get(0).contenido()).isEqualTo("Mensaje tutores");
+    }
+
+    @Test
+    @DisplayName("Listar mensajes devuelve en orden cronológico ascendente")
+    void listar_mensajes_orden_cronologico() {
+        mensajeService.guardar(new MensajeRequest("Primer mensaje", CANAL_ALUMNO),
+                alumno.getEmail(), practica.getId(), CANAL_ALUMNO);
+        mensajeService.guardar(new MensajeRequest("Segundo mensaje", CANAL_ALUMNO),
+                tutorCentro.getEmail(), practica.getId(), CANAL_ALUMNO);
+
+        setSecurityContext(alumno.getEmail());
+        List<MensajeResponse> mensajes = mensajeService.listarPorPractica(practica.getId(), CANAL_ALUMNO);
 
         assertThat(mensajes).hasSize(2);
         assertThat(mensajes.get(0).contenido()).isEqualTo("Primer mensaje");
@@ -135,7 +184,8 @@ class MensajeServiceTest {
     @DisplayName("La respuesta incluye nombre, apellidos y fechaEnvio del remitente")
     void respuesta_incluye_datos_del_remitente() {
         MensajeResponse resp = mensajeService.guardar(
-                new MensajeRequest("Comprobar datos"), alumno.getEmail(), practica.getId());
+                new MensajeRequest("Comprobar datos", CANAL_ALUMNO),
+                alumno.getEmail(), practica.getId(), CANAL_ALUMNO);
 
         assertThat(resp.remitenteNombre()).isEqualTo("Alumno");
         assertThat(resp.remitenteApellidos()).isEqualTo("Chat");
@@ -143,16 +193,25 @@ class MensajeServiceTest {
     }
 
     @Test
-    @DisplayName("Varios participantes pueden enviar mensajes y todos aparecen en el historial")
-    void varios_participantes_pueden_chatear() {
-        mensajeService.guardar(new MensajeRequest("Hola soy el alumno"), alumno.getEmail(), practica.getId());
-        mensajeService.guardar(new MensajeRequest("Hola soy el tutor"), tutorCentro.getEmail(), practica.getId());
-        mensajeService.guardar(new MensajeRequest("Hola soy la empresa"), tutorEmpresa.getEmail(), practica.getId());
+    @DisplayName("Práctica inexistente lanza ResourceNotFoundException")
+    void practica_inexistente_lanza_excepcion() {
+        assertThatThrownBy(() ->
+            mensajeService.guardar(new MensajeRequest("Sin práctica", CANAL_ALUMNO),
+                    alumno.getEmail(), 999999L, CANAL_ALUMNO)
+        ).isInstanceOf(ResourceNotFoundException.class);
+    }
 
-        List<MensajeResponse> mensajes = mensajeService.listarPorPractica(practica.getId());
+    @Test
+    @DisplayName("Usuario ajeno a la práctica no puede enviar mensajes — BusinessRuleException")
+    void ajeno_no_puede_enviar_mensaje() {
+        Usuario ajeno = usuarioRepository.save(Usuario.builder()
+                .dni("MS000004D").nombre("Externo").apellidos("Ajeno")
+                .email("externo.chat@test.com").passwordHash("hash").activo(true).build());
 
-        assertThat(mensajes).hasSize(3);
-        assertThat(mensajes).extracting(MensajeResponse::remitenteId)
-                .containsExactlyInAnyOrder(alumno.getId(), tutorCentro.getId(), tutorEmpresa.getId());
+        assertThatThrownBy(() ->
+            mensajeService.guardar(new MensajeRequest("Intento no autorizado", CANAL_ALUMNO),
+                    ajeno.getEmail(), practica.getId(), CANAL_ALUMNO)
+        ).isInstanceOf(BusinessRuleException.class)
+         .hasMessageContaining("acceso");
     }
 }

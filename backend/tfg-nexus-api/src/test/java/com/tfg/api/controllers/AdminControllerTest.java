@@ -46,7 +46,7 @@ class AdminControllerTest {
 
     private UsuarioResponse usuarioResponse(Long id, String email, String rol) {
         return new UsuarioResponse(id, "TEST123A", "Test", "Usuario", email,
-                Set.of(rol), null, true);
+                Set.of(rol), null, true, false);
     }
 
     @Test

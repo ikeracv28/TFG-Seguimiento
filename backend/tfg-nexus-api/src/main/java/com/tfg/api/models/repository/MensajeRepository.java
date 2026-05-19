@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface MensajeRepository extends JpaRepository<Mensaje, Long> {
     List<Mensaje> findByPracticaIdOrderByFechaEnvioAsc(Long practicaId);
+    List<Mensaje> findByPracticaIdAndCanalOrderByFechaEnvioAsc(Long practicaId, String canal);
 }

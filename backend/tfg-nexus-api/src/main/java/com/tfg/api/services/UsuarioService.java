@@ -1,14 +1,11 @@
 package com.tfg.api.services;
 
 import com.tfg.api.models.dto.UsuarioResponse;
+import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Servicio para la gestión de datos de usuario.
- */
 public interface UsuarioService {
-    
-    /**
-     * Obtiene el perfil del usuario actualmente autenticado.
-     */
     UsuarioResponse getMe();
+    void uploadFoto(MultipartFile file);
+    byte[] getFoto(Long usuarioId);
+    String getFotoContentType(Long usuarioId);
 }

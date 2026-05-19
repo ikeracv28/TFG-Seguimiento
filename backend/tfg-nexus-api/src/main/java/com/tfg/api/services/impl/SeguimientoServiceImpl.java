@@ -14,6 +14,7 @@ import com.tfg.api.models.repository.PracticaRepository;
 import com.tfg.api.models.repository.SeguimientoRepository;
 import com.tfg.api.models.repository.UsuarioRepository;
 import com.tfg.api.services.AuditService;
+import com.tfg.api.services.NotificacionService;
 import com.tfg.api.services.SeguimientoService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +43,7 @@ public class SeguimientoServiceImpl implements SeguimientoService {
     private final IncidenciaRepository incidenciaRepository;
     private final SeguimientoMapper seguimientoMapper;
     private final AuditService auditService;
+    private final NotificacionService notificacionService;
 
     @Override
     @Transactional
@@ -48,18 +51,51 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         Practica practica = practicaRepository.findById(request.practicaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Práctica no encontrada"));
 
-        // A04: máximo 1 parte pendiente por semana ISO (lunes-domingo)
-        LocalDate lunes = request.fechaRegistro().with(DayOfWeek.MONDAY);
-        LocalDate domingo = request.fechaRegistro().with(DayOfWeek.SUNDAY);
-        if (seguimientoRepository.existsByPracticaIdAndEstadoAndFechaRegistroBetween(
-                request.practicaId(), "PENDIENTE_EMPRESA", lunes, domingo)) {
-            throw new BusinessRuleException(
-                "Ya tienes un parte pendiente de validación para esta semana. Espera a que sea procesado antes de registrar otro.");
+        // A01: el alumno solo puede registrar partes en su propia práctica
+        String emailAlumno = currentUserEmail();
+        if (!practica.getAlumno().getEmail().equals(emailAlumno)) {
+            throw new AccessDeniedException("No tienes acceso a esta práctica");
+        }
+
+        // Determinar tipo (DIARIO por defecto)
+        String tipo = (request.tipo() != null && !request.tipo().isBlank())
+                ? request.tipo().toUpperCase() : "DIARIO";
+        if (!"DIARIO".equals(tipo) && !"SEMANAL".equals(tipo)) {
+            throw new BusinessRuleException("Tipo de parte no válido: " + tipo);
+        }
+
+        // Validación de horas según tipo
+        if ("DIARIO".equals(tipo) && request.horasRealizadas() > 24.0) {
+            throw new BusinessRuleException("Para registro diario el máximo son 24 horas");
+        }
+        if ("SEMANAL".equals(tipo) && request.horasRealizadas() > 50.0) {
+            throw new BusinessRuleException("Para registro semanal el máximo son 50 horas");
+        }
+
+        // A04: no permitir duplicados en el mismo periodo
+        LocalDate inicio, fin;
+        if ("SEMANAL".equals(tipo)) {
+            inicio = request.fechaRegistro().with(DayOfWeek.MONDAY);
+            fin    = request.fechaRegistro().with(DayOfWeek.SUNDAY);
+        } else {
+            inicio = request.fechaRegistro();
+            fin    = request.fechaRegistro();
+        }
+        if (seguimientoRepository.existsByPracticaIdAndFechaRegistroBetween(
+                request.practicaId(), inicio, fin)) {
+            throw new BusinessRuleException("SEMANAL".equals(tipo)
+                ? "Ya tienes un parte registrado para esta semana"
+                : "Ya tienes un parte registrado para esta fecha");
         }
 
         Seguimiento seguimiento = seguimientoMapper.toEntity(request);
         seguimiento.setPractica(practica);
         seguimiento.setEstado("PENDIENTE_EMPRESA");
+        seguimiento.setTipo(tipo);
+        // Para SEMANAL, normalizar fechaRegistro al lunes de esa semana
+        if ("SEMANAL".equals(tipo)) {
+            seguimiento.setFechaRegistro(request.fechaRegistro().with(DayOfWeek.MONDAY));
+        }
 
         SeguimientoResponse registrado = seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
         String actor = currentUserEmail();
@@ -120,11 +156,16 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         seguimiento.setValidadoPor(tutorEmpresa);
         seguimiento.setComentarioTutor(motivo);
 
+        Long alumnoId = seguimiento.getPractica().getAlumno().getId();
         if ("RECHAZADO".equals(nuevoEstado)) {
             log.info("SEGUIMIENTO_RECHAZADO id={} por_tutor={} motivo={}", id, emailTutor, motivo);
             crearIncidenciaRechazo(seguimiento.getPractica(), tutorEmpresa, motivo);
+            notificacionService.crear(alumnoId, "SEGUIMIENTO",
+                    "Tu parte de seguimiento del " + seguimiento.getFechaRegistro() + " ha sido rechazado. Motivo: " + motivo);
         } else {
             log.info("SEGUIMIENTO_VALIDADO_EMPRESA id={} por_tutor={}", id, emailTutor);
+            notificacionService.crear(alumnoId, "SEGUIMIENTO",
+                    "Tu parte de seguimiento del " + seguimiento.getFechaRegistro() + " ha sido aprobado por la empresa.");
         }
 
         SeguimientoResponse validado = seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
@@ -159,6 +200,11 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         SeguimientoResponse completado = seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
         auditService.registrar("SEGUIMIENTOS", "VALIDAR_CENTRO", id,
                 "Seguimiento completado", emailTutor);
+
+        Long alumnoId = seguimiento.getPractica().getAlumno().getId();
+        notificacionService.crear(alumnoId, "SEGUIMIENTO",
+                "Tu parte de seguimiento del " + seguimiento.getFechaRegistro() + " ha sido completado y validado por el tutor del centro.");
+
         return completado;
     }
 
@@ -167,6 +213,12 @@ public class SeguimientoServiceImpl implements SeguimientoService {
     public void eliminar(Long id) {
         Seguimiento seguimiento = seguimientoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
+
+        // A01: solo el alumno propietario puede eliminar su parte
+        String emailAlumno = currentUserEmail();
+        if (!seguimiento.getPractica().getAlumno().getEmail().equals(emailAlumno)) {
+            throw new AccessDeniedException("No tienes permiso para eliminar este seguimiento");
+        }
 
         if (!"PENDIENTE_EMPRESA".equals(seguimiento.getEstado())) {
             throw new BusinessRuleException("No se puede eliminar un registro ya procesado");

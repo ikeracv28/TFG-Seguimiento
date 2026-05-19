@@ -221,12 +221,74 @@
 
 ---
 
-## E. Perfil de usuario
+## E. Perfil de usuario y foto
 
 ### GET /usuarios/me
 **Acceso**: cualquier usuario autenticado
 **Descripción**: devuelve el perfil del usuario autenticado por JWT. Sin parámetros.
-**Respuesta 200**: `UsuarioResponse`
+**Respuesta 200**: `UsuarioResponse { id, dni, nombre, apellidos, email, roles, centroNombre, activo, tieneFoto }`
+**Nota**: el campo `tieneFoto: boolean` indica si hay foto de perfil subida (evita descargar innecesariamente).
+
+### POST /usuarios/me/foto
+**Acceso**: cualquier usuario autenticado
+**Content-Type**: `multipart/form-data`
+**Campo**: `file` — archivo de imagen (JPEG, PNG o WebP, máximo 5 MB)
+**Respuesta 204**: foto guardada
+**Respuesta 400**: MIME no permitido o supera el límite de tamaño
+**Seguridad**: validación MIME + tamaño en servicio; no se confía en el Content-Type del cliente.
+
+### GET /usuarios/{id}/foto
+**Acceso**: cualquier usuario autenticado
+**Descripción**: descarga la foto de perfil del usuario con ese ID. Devuelve el binario con el Content-Type original.
+**Respuesta 200**: bytes de la imagen con `Content-Type: image/jpeg|image/png|image/webp`
+**Respuesta 404**: el usuario no tiene foto de perfil
+**Nota IDOR**: cualquier usuario autenticado puede ver la foto de otro — es información pública dentro de la plataforma (similar a un avatar). El ID no revela datos sensibles.
+
+---
+
+## F-bis. Notificaciones
+
+> Todos los endpoints requieren usuario autenticado. Cada usuario solo ve sus propias notificaciones.
+
+### GET /notificaciones/me
+**Acceso**: cualquier usuario autenticado
+**Descripción**: lista todas las notificaciones del usuario autenticado, ordenadas de más reciente a más antigua.
+**Respuesta 200**: `List<NotificacionResponse>`
+```json
+[
+  {
+    "id": 12,
+    "tipo": "SEGUIMIENTO",
+    "mensaje": "Tu parte de seguimiento del 2026-05-10 ha sido aprobado por la empresa.",
+    "leida": false,
+    "fechaCreacion": "2026-05-10T18:30:00"
+  }
+]
+```
+**Tipos posibles**: `SEGUIMIENTO`, `CHAT`, `INCIDENCIA`, `SISTEMA`
+
+### GET /notificaciones/me/no-leidas
+**Acceso**: cualquier usuario autenticado
+**Respuesta 200**: `{ "count": 3 }` — número de notificaciones no leídas
+
+### PATCH /notificaciones/{id}/leer
+**Acceso**: cualquier usuario autenticado
+**Descripción**: marca una notificación como leída. Solo funciona si la notificación pertenece al usuario autenticado.
+**Respuesta 204**: marcada correctamente
+**Respuesta 404**: notificación no encontrada o de otro usuario
+
+### PATCH /notificaciones/me/leer-todas
+**Acceso**: cualquier usuario autenticado
+**Descripción**: marca todas las notificaciones del usuario como leídas.
+**Respuesta 204**
+
+**Cuándo se crean notificaciones automáticamente**:
+| Evento | Destinatario | Tipo |
+|--------|-------------|------|
+| Tutor empresa aprueba parte de seguimiento | Alumno | `SEGUIMIENTO` |
+| Tutor empresa rechaza parte de seguimiento | Alumno | `SEGUIMIENTO` |
+| Tutor centro valida parte (COMPLETADO) | Alumno | `SEGUIMIENTO` |
+| Nuevo mensaje de chat en una práctica | Los otros 2 participantes (no el remitente) | `CHAT` |
 
 ---
 
@@ -349,13 +411,29 @@
 
 ---
 
-## I. Pendiente (Hito 4 — 19 mayo 2026)
+## I. Chat WebSocket/STOMP — Hito 4 completado
 
-| Endpoint | Descripción |
-|----------|-------------|
-| `GET /mensajes/practica/{id}` | Historial de mensajes del chat |
-| `POST /mensajes` | Enviar mensaje (REST) |
-| `WS /ws/chat/{practicaId}` | Canal WebSocket/STOMP en tiempo real |
+### GET /mensajes/practica/{id}
+**Acceso**: participantes de la práctica (alumno, tutor centro, tutor empresa) o ADMIN
+**Descripción**: devuelve el historial de mensajes de una práctica ordenado por fecha ascendente.
+**Seguridad A01**: se verifica participación — otro usuario recibe 403 aunque conozca el ID.
+**Respuesta 200**: `List<MensajeResponse>`
+
+### WS /ws/chat — conexión STOMP
+**Protocolo**: WebSocket sobre STOMP
+**Autenticación CONNECT**: cabecera `Authorization: Bearer <JWT>` en el frame CONNECT
+**Autenticación SUBSCRIBE**: el interceptor verifica que el usuario es participante de la práctica antes de permitir la suscripción a `/topic/practica/{id}`
+**Publicar**: `SEND /app/chat/{practicaId}` con body `{ "contenido": "..." }`
+**Suscribirse**: `SUBSCRIBE /topic/practica/{practicaId}`
+
+---
+
+## J. Pendiente (próximas features)
+
+| Endpoint | Descripción | Feature |
+|----------|-------------|---------|
+| `POST /evaluaciones` | Evaluación final del alumno por el tutor | Feature 4 |
+| `GET /evaluaciones/practica/{id}` | Ver evaluación de una práctica | Feature 4 |
 
 ---
 
