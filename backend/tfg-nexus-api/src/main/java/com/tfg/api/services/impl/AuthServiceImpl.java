@@ -16,6 +16,7 @@ import com.tfg.api.models.repository.UsuarioRepository;
 import com.tfg.api.security.JwtUtils;
 import com.tfg.api.security.TokenBlacklistService;
 import com.tfg.api.security.UserDetailsServiceImpl;
+import com.tfg.api.services.AuditService;
 import com.tfg.api.services.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -44,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final UsuarioMapper usuarioMapper;
     private final UserDetailsServiceImpl userDetailsService;
+    private final AuditService auditService;
 
     /**
      * Registra al usuario y devuelve automáticamente el Token para el Login inmediato.
@@ -71,6 +73,8 @@ public class AuthServiceImpl implements AuthService {
         // Persistencia
         Usuario usuarioGuardado = usuarioRepository.save(usuario);
         log.info("USUARIO_REGISTRADO id={} rol=ALUMNO", usuarioGuardado.getId());
+        auditService.registrar("USUARIOS", "REGISTRO", usuarioGuardado.getId(),
+                "email=" + usuarioGuardado.getEmail(), usuarioGuardado.getEmail());
 
         // CARGA DE USERDETAILS PARA JWT (Corrección de tipo)
         UserDetails userDetails = userDetailsService.loadUserByUsername(usuarioGuardado.getEmail());

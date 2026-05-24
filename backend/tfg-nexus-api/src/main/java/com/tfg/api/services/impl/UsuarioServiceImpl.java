@@ -5,6 +5,7 @@ import com.tfg.api.models.dto.UsuarioResponse;
 import com.tfg.api.models.entity.Usuario;
 import com.tfg.api.models.mapper.UsuarioMapper;
 import com.tfg.api.models.repository.UsuarioRepository;
+import com.tfg.api.services.AuditService;
 import com.tfg.api.services.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +24,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
+    private final AuditService auditService;
 
     @Override
     public UsuarioResponse getMe() {
@@ -47,6 +49,8 @@ public class UsuarioServiceImpl implements UsuarioService {
             throw new RuntimeException("Error al leer el archivo de imagen.", e);
         }
         usuarioRepository.save(usuario);
+        auditService.registrar("USUARIOS", "FOTO_PERFIL", usuario.getId(),
+                "contentType=" + contentType, usuario.getEmail());
     }
 
     @Override
