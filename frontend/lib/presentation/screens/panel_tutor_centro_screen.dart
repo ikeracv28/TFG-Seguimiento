@@ -1020,8 +1020,6 @@ class _DetailPanel extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
           child: LayoutBuilder(
             builder: (ctx, cst) {
-              final twoCol = cst.maxWidth > 650;
-
               // ── Header alumno ──────────────────────────────────────────
               final alumnoHeader = Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -1176,18 +1174,9 @@ class _DetailPanel extends StatelessWidget {
                   const SizedBox(height: 20),
                   miniStats,
                   const SizedBox(height: 20),
-                  // En desktop: progresoCard + comunicación en la misma fila
-                  if (twoCol)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: progresoCard),
-                        const SizedBox(width: 16),
-                        SizedBox(width: 210, child: _buildComunicacionCard(ctx, practica)),
-                      ],
-                    )
-                  else
-                    progresoCard,
+                  progresoCard,
+                  const SizedBox(height: 12),
+                  _buildComunicacionCard(ctx, practica),
 
                   if (pendientes.isNotEmpty) ...[
                     const SizedBox(height: 24),
@@ -1254,11 +1243,6 @@ class _DetailPanel extends StatelessWidget {
                     ),
                   ],
 
-                  // En móvil (una columna), comunicación va al final
-                  if (!twoCol) ...[
-                    const SizedBox(height: 24),
-                    _buildComunicacionCard(ctx, practica),
-                  ],
                 ],
               );
 
@@ -1271,19 +1255,10 @@ class _DetailPanel extends StatelessWidget {
   }
 
   Widget _buildComunicacionCard(BuildContext context, Practica practica) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.nxt.surface,
-        border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
-        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Comunicación', style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          _ChatCard(
+    return Row(
+      children: [
+        Expanded(
+          child: _ChatCard(
             icon: Icons.chat_bubble_outline,
             label: 'Chat alumno',
             subtitle: practica.alumnoNombre,
@@ -1291,8 +1266,10 @@ class _DetailPanel extends StatelessWidget {
             bgColor: NexusColors.primaryLight,
             onTap: onChatTap,
           ),
-          const SizedBox(height: 8),
-          _ChatCard(
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _ChatCard(
             icon: Icons.supervisor_account_outlined,
             label: 'Chat empresa',
             subtitle: practica.empresaNombre,
@@ -1300,8 +1277,8 @@ class _DetailPanel extends StatelessWidget {
             bgColor: NexusColors.successLight,
             onTap: onChatTutoresTap,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
