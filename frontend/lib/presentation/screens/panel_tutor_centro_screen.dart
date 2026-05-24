@@ -575,13 +575,6 @@ class _Sidebar extends StatelessWidget {
     );
   }
 
-  String _getInitials(String nombre) {
-    final parts =
-        nombre.trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-  }
 }
 
 class _NavBtn extends StatelessWidget {
@@ -590,23 +583,18 @@ class _NavBtn extends StatelessWidget {
   final String tooltip;
   final bool isActive;
   final VoidCallback onTap;
-  final Color? activeColor;
-  final Color? activeBgColor;
-
   const _NavBtn({
     required this.icon,
     required this.activeIcon,
     required this.tooltip,
     required this.isActive,
     required this.onTap,
-    this.activeColor,
-    this.activeBgColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = activeColor ?? NexusColors.primary;
-    final bgColor = activeBgColor ?? NexusColors.primaryLight;
+    const color = NexusColors.primary;
+    const bgColor = NexusColors.primaryLight;
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
@@ -930,13 +918,6 @@ class _StudentItem extends StatelessWidget {
     );
   }
 
-  String _getInitials(String nombre) {
-    final parts =
-        nombre.trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-  }
 }
 
 class _MiniPill extends StatelessWidget {
@@ -1282,13 +1263,6 @@ class _DetailPanel extends StatelessWidget {
     );
   }
 
-  String _getInitials(String nombre) {
-    final parts =
-        nombre.trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-  }
 }
 
 // ── All partes panel ───────────────────────────────────────────────────────────

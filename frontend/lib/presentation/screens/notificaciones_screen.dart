@@ -64,7 +64,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
           return ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: prov.items.length,
-            separatorBuilder: (_, __) => Divider(height: 1, color: nxt.border),
+            separatorBuilder: (_, _) => Divider(height: 1, color: nxt.border),
             itemBuilder: (context, index) {
               final n = prov.items[index];
               return _NotificacionTile(item: n, onTap: () => prov.marcarLeida(n.id));
@@ -119,7 +119,7 @@ class _NotificacionTile extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha:0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(_iconForTipo(item.tipo), size: 18, color: color),

@@ -414,7 +414,7 @@ class _DashboardContent extends StatelessWidget {
       onVerTodos: onVerTodosSeguimientos,
       onRegistrar: () => showDialog(
         context: context,
-        barrierColor: Colors.black.withOpacity(0.45),
+        barrierColor: Colors.black.withValues(alpha:0.45),
         builder: (_) => NuevoParteDialog(onGuardado: practica.cargarDashboard),
       ),
     );

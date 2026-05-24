@@ -25,7 +25,7 @@ class _SeguimientosScreenState extends State<SeguimientosScreen> {
   @override
   Widget build(BuildContext context) {
     return Consumer<PracticaProvider>(
-      builder: (_, provider, __) {
+      builder: (_, provider, _) {
         final seguimientos = provider.seguimientos;
         final horasCompletadas = provider.horasCompletadas;
         final horasTotales = provider.practicaActiva?.horasTotales ?? 0;
@@ -55,7 +55,7 @@ class _SeguimientosScreenState extends State<SeguimientosScreen> {
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => showDialog(
               context: context,
-              barrierColor: Colors.black.withOpacity(0.45),
+              barrierColor: Colors.black.withValues(alpha:0.45),
               builder: (_) => NuevoParteDialog(onGuardado: provider.cargarDashboard),
             ),
             icon: const Icon(Icons.add),
@@ -266,7 +266,7 @@ class _KpiRow extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: NexusColors.danger.withOpacity(0.12),
+                      color: NexusColors.danger.withValues(alpha:0.12),
                       borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
                     ),
                     child: const Text(
@@ -717,7 +717,7 @@ class _NuevoParteDialogState extends State<NuevoParteDialog> {
               border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.5 : 0.12),
+                  color: Colors.black.withValues(alpha:isDark ? 0.5 : 0.12),
                   blurRadius: 32,
                   offset: const Offset(0, 8),
                 ),
@@ -1149,7 +1149,7 @@ class _StepBtn extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: enabled
-              ? NexusColors.primary.withOpacity(0.08)
+              ? NexusColors.primary.withValues(alpha:0.08)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(NexusSizes.radiusMD - 2),
         ),

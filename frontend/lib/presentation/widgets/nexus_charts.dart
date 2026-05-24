@@ -240,7 +240,7 @@ class HorasSemanaChart extends StatelessWidget {
               getTooltipColor: (_) => context.nxt.surface,
               tooltipBorder: BorderSide(color: context.nxt.border, width: 0.5),
               tooltipRoundedRadius: 6,
-              getTooltipItem: (group, _, rod, __) => BarTooltipItem(
+              getTooltipItem: (group, _, rod, _) => BarTooltipItem(
                 '${rod.toY.toInt()}h',
                 TextStyle(
                   color: NexusColors.primary,

@@ -286,7 +286,7 @@ class _FichaAlumnoScreenState extends State<FichaAlumnoScreen> {
                 _SectionTitle('Evaluación final'),
                 const SizedBox(height: 8),
                 Consumer<TutorCentroProvider>(
-                  builder: (_, prov, __) =>
+                  builder: (_, prov, _) =>
                       _EvaluacionCard(evaluacion: prov.evaluacionDe(widget.practica.id)),
                 ),
                 const SizedBox(height: 24),
@@ -943,18 +943,24 @@ class _FichaAlumnoScreenState extends State<FichaAlumnoScreen> {
       evalSheet.setColumnWidth(1, 14);
       int idx = 0;
       _xlDataRow(evalSheet, ['Nota global', evaluacion.notaGlobal.toStringAsFixed(2)], idx++);
-      if (evaluacion.actitudPuntualidad != null)
+      if (evaluacion.actitudPuntualidad != null) {
         _xlDataRow(evalSheet, ['Actitud y puntualidad', evaluacion.actitudPuntualidad!.toStringAsFixed(1)], idx++);
-      if (evaluacion.competenciaTecnica != null)
+      }
+      if (evaluacion.competenciaTecnica != null) {
         _xlDataRow(evalSheet, ['Competencia tecnica', evaluacion.competenciaTecnica!.toStringAsFixed(1)], idx++);
-      if (evaluacion.iniciativaAutonomia != null)
+      }
+      if (evaluacion.iniciativaAutonomia != null) {
         _xlDataRow(evalSheet, ['Iniciativa y autonomia', evaluacion.iniciativaAutonomia!.toStringAsFixed(1)], idx++);
-      if (evaluacion.trabajoEquipo != null)
+      }
+      if (evaluacion.trabajoEquipo != null) {
         _xlDataRow(evalSheet, ['Trabajo en equipo', evaluacion.trabajoEquipo!.toStringAsFixed(1)], idx++);
-      if (evaluacion.cumplimientoTareas != null)
+      }
+      if (evaluacion.cumplimientoTareas != null) {
         _xlDataRow(evalSheet, ['Cumplimiento de tareas', evaluacion.cumplimientoTareas!.toStringAsFixed(1)], idx++);
-      if (evaluacion.comentario != null && evaluacion.comentario!.isNotEmpty)
+      }
+      if (evaluacion.comentario != null && evaluacion.comentario!.isNotEmpty) {
         _xlDataRow(evalSheet, ['Comentario', evaluacion.comentario!], idx++);
+      }
       _xlDataRow(evalSheet, ['Evaluado por', evaluacion.tutorEmpresaNombre], idx++);
       _xlDataRow(evalSheet, ['Fecha evaluacion', fmt.format(evaluacion.fechaEvaluacion)], idx);
     }

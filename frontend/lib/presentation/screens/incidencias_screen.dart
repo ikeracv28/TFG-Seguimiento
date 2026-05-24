@@ -66,7 +66,7 @@ class _IncidenciasScreenState extends State<IncidenciasScreen> {
   void _mostrarDialog(BuildContext context, PracticaProvider provider) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.45),
+      barrierColor: Colors.black.withValues(alpha:0.45),
       builder: (_) => _ReportarIncidenciaDialog(onReportado: provider.cargarDashboard),
     );
   }
@@ -354,7 +354,7 @@ class _ReportarIncidenciaDialogState extends State<_ReportarIncidenciaDialog> {
               border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.5 : 0.12),
+                  color: Colors.black.withValues(alpha:isDark ? 0.5 : 0.12),
                   blurRadius: 32,
                   offset: const Offset(0, 8),
                 ),

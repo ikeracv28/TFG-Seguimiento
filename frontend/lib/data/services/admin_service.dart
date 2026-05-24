@@ -165,9 +165,9 @@ class AdminService {
       final response = await _apiClient.dio.post('/empresas', data: {
         'nombre': nombre,
         'cif': cif,
-        if (direccion != null) 'direccion': direccion,
-        if (emailContacto != null) 'emailContacto': emailContacto,
-        if (telefonoContacto != null) 'telefonoContacto': telefonoContacto,
+        'direccion': ?direccion,
+        'emailContacto': ?emailContacto,
+        'telefonoContacto': ?telefonoContacto,
       });
       return EmpresaModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -190,9 +190,9 @@ class AdminService {
       final response = await _apiClient.dio.put('/empresas/$id', data: {
         'nombre': nombre,
         'cif': cif,
-        if (direccion != null) 'direccion': direccion,
-        if (emailContacto != null) 'emailContacto': emailContacto,
-        if (telefonoContacto != null) 'telefonoContacto': telefonoContacto,
+        'direccion': ?direccion,
+        'emailContacto': ?emailContacto,
+        'telefonoContacto': ?telefonoContacto,
       });
       return EmpresaModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

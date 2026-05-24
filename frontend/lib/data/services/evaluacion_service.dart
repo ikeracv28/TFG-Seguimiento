@@ -24,11 +24,11 @@ class EvaluacionService {
     final response = await _client.dio.post(
       '/evaluaciones/practica/$practicaId',
       data: {
-        if (actitudPuntualidad != null) 'actitudPuntualidad': actitudPuntualidad,
-        if (competenciaTecnica != null) 'competenciaTecnica': competenciaTecnica,
-        if (iniciativaAutonomia != null) 'iniciativaAutonomia': iniciativaAutonomia,
-        if (trabajoEquipo != null) 'trabajoEquipo': trabajoEquipo,
-        if (cumplimientoTareas != null) 'cumplimientoTareas': cumplimientoTareas,
+        'actitudPuntualidad': ?actitudPuntualidad,
+        'competenciaTecnica': ?competenciaTecnica,
+        'iniciativaAutonomia': ?iniciativaAutonomia,
+        'trabajoEquipo': ?trabajoEquipo,
+        'cumplimientoTareas': ?cumplimientoTareas,
         'notaGlobal': notaGlobal,
         if (comentario != null && comentario.isNotEmpty) 'comentario': comentario,
       },

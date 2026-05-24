@@ -1845,7 +1845,7 @@ class _CriterioSlider extends StatelessWidget {
               Switch(
                 value: enabled,
                 onChanged: onToggle,
-                activeColor: NexusColors.primary,
+                activeThumbColor: NexusColors.primary,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ],

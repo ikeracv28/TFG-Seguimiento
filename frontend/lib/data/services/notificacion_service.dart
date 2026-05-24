@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import '../../core/config/api_client.dart';
 import '../models/notificacion_model.dart';
 

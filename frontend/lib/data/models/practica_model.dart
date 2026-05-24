@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 /**
  * Modelo de datos para las Prácticas Académicas.

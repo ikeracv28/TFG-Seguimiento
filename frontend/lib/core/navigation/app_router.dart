@@ -23,23 +23,23 @@ GoRouter buildRouter(AuthProvider auth) => GoRouter(
       routes: [
         GoRoute(
           path: '/login',
-          builder: (_, __) => const LoginScreen(),
+          builder: (_, _) => const LoginScreen(),
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (_, __) => const DashboardScreen(),
+          builder: (_, _) => const DashboardScreen(),
         ),
         GoRoute(
           path: '/tutor-empresa',
-          builder: (_, __) => const PanelTutorEmpresaScreen(),
+          builder: (_, _) => const PanelTutorEmpresaScreen(),
         ),
         GoRoute(
           path: '/tutor-centro',
-          builder: (_, __) => const PanelTutorCentroScreen(),
+          builder: (_, _) => const PanelTutorCentroScreen(),
         ),
         GoRoute(
           path: '/admin',
-          builder: (_, __) => const PanelAdminScreen(),
+          builder: (_, _) => const PanelAdminScreen(),
         ),
       ],
     );

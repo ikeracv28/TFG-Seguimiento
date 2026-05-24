@@ -12,7 +12,7 @@ class AusenciasScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<PracticaProvider>(
-      builder: (_, provider, __) {
+      builder: (_, provider, _) {
         final ausencias = provider.ausencias;
         final justificadas = ausencias.where((a) => a.estaJustificada).length;
         final pendientes = ausencias.where((a) => a.estaPendiente).length;

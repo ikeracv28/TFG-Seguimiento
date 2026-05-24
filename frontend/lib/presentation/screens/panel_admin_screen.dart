@@ -967,7 +967,7 @@ class _VistaPracticasState extends State<_VistaPracticas> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(NexusSizes.space2XL),
                         itemCount: lista.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: NexusSizes.spaceSM),
                         itemBuilder: (_, i) =>
                             _PracticaCard(practica: lista[i]),
@@ -1000,9 +1000,8 @@ class _VistaPracticasState extends State<_VistaPracticas> {
 
 class _PracticaCard extends StatelessWidget {
   final Practica practica;
-  final bool compacta;
 
-  const _PracticaCard({required this.practica, this.compacta = false});
+  const _PracticaCard({required this.practica});
 
   Color get _bgEstado {
     switch (practica.estado) {
@@ -1034,7 +1033,7 @@ class _PracticaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (ctx, cst) {
-      final narrow = compacta || cst.maxWidth < 480;
+      final narrow = cst.maxWidth < 480;
       return _buildCard(context, narrow);
     });
   }
@@ -1269,29 +1268,6 @@ class _PracticaCard extends StatelessWidget {
   }
 }
 
-class _ChipEstado extends StatelessWidget {
-  final String estado;
-  final Color color;
-
-  const _ChipEstado({required this.estado, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: NexusSizes.spaceSM, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Text(estado,
-          style: TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w500, color: color)),
-    );
-  }
-}
-
 // ---- Dialog crear práctica ----
 
 class _DialogCrearPractica extends StatefulWidget {
@@ -1330,8 +1306,7 @@ class _DialogCrearPracticaState extends State<_DialogCrearPractica> {
     );
     if (picked != null) {
       setState(() {
-        if (esInicio) _fechaInicio = picked;
-        else _fechaFin = picked;
+        if (esInicio) { _fechaInicio = picked; } else { _fechaFin = picked; }
       });
     }
   }
@@ -1421,7 +1396,7 @@ class _DialogCrearPracticaState extends State<_DialogCrearPractica> {
                 ),
                 const SizedBox(height: NexusSizes.spaceMD),
                 DropdownButtonFormField<EmpresaModel>(
-                  value: _empresa,
+                  initialValue: _empresa,
                   decoration: _deco('Empresa'),
                   items: admin.empresas
                       .map((e) => DropdownMenuItem(value: e, child: Text(e.nombre)))
@@ -1507,7 +1482,7 @@ class _DropdownUsuario extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<UsuarioModel>(
-      value: valor,
+      initialValue: valor,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
@@ -1842,9 +1817,9 @@ class _ChipRol extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: NexusSizes.spaceSM, vertical: NexusSizes.spaceXS),
       decoration: BoxDecoration(
-        color: _color.withOpacity(0.12),
+        color: _color.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
-        border: Border.all(color: _color.withOpacity(0.3)),
+        border: Border.all(color: _color.withValues(alpha:0.3)),
       ),
       child: Text(rol,
           style: TextStyle(
@@ -1961,7 +1936,7 @@ class _DialogCrearUsuarioState extends State<_DialogCrearUsuario> {
                 const SizedBox(width: NexusSizes.spaceMD),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _rolSeleccionado,
+                    initialValue: _rolSeleccionado,
                     decoration: _deco('Rol'),
                     items: _roles.map((r) =>
                         DropdownMenuItem(value: r.$1, child: Text(r.$2))).toList(),
@@ -2175,6 +2150,8 @@ class _VistaEmpresasState extends State<_VistaEmpresas> {
   }
 
   Future<void> _confirmarEliminar(BuildContext context, EmpresaModel empresa) async {
+    final adminProvider = context.read<AdminProvider>();
+    final messenger = ScaffoldMessenger.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -2193,13 +2170,12 @@ class _VistaEmpresasState extends State<_VistaEmpresas> {
       ),
     );
     if (confirm != true || !mounted) return;
-    final ok = await context.read<AdminProvider>().eliminarEmpresa(empresa.id);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Empresa eliminada' : context.read<AdminProvider>().error ?? 'Error al eliminar'),
-        backgroundColor: ok ? NexusColors.success : NexusColors.danger,
-      ));
-    }
+    final ok = await adminProvider.eliminarEmpresa(empresa.id);
+    if (!mounted) return;
+    messenger.showSnackBar(SnackBar(
+      content: Text(ok ? 'Empresa eliminada' : adminProvider.error ?? 'Error al eliminar'),
+      backgroundColor: ok ? NexusColors.success : NexusColors.danger,
+    ));
   }
 }
 
@@ -2620,7 +2596,7 @@ class _VistaAuditoriaState extends State<_VistaAuditoria> {
                     label: Text(m),
                     selected: activo,
                     onSelected: (_) => _cambiarModulo(m),
-                    selectedColor: color.withOpacity(0.15),
+                    selectedColor: color.withValues(alpha:0.15),
                     labelStyle: TextStyle(
                         fontSize: 12,
                         fontWeight: activo ? FontWeight.w600 : FontWeight.normal,
@@ -2645,7 +2621,7 @@ class _VistaAuditoriaState extends State<_VistaAuditoria> {
             return ListView.separated(
               padding: const EdgeInsets.all(NexusSizes.space2XL),
               itemCount: admin.auditLogs.length,
-              separatorBuilder: (_, __) => const SizedBox(height: NexusSizes.spaceXS),
+              separatorBuilder: (_, _) => const SizedBox(height: NexusSizes.spaceXS),
               itemBuilder: (_, i) => _AuditLogTile(
                 log: admin.auditLogs[i],
                 color: _coloresModulo[admin.auditLogs[i].modulo] ?? context.nxt.ink,
@@ -2748,9 +2724,9 @@ class _ChipModulo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha:0.3)),
       ),
       child: Text(modulo,
           style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
@@ -2861,7 +2837,7 @@ class _DialogEditarUsuarioState extends State<_DialogEditarUsuario> {
                 const SizedBox(width: NexusSizes.spaceMD),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _rolSeleccionado,
+                    initialValue: _rolSeleccionado,
                     decoration: _deco('Rol'),
                     items: _roles.map((r) =>
                         DropdownMenuItem(value: r.$1, child: Text(r.$2))).toList(),
@@ -2985,8 +2961,7 @@ class _DialogEditarPracticaState extends State<_DialogEditarPractica> {
     );
     if (picked != null) {
       setState(() {
-        if (esInicio) _fechaInicio = picked;
-        else _fechaFin = picked;
+        if (esInicio) { _fechaInicio = picked; } else { _fechaFin = picked; }
       });
     }
   }
@@ -3057,7 +3032,7 @@ class _DialogEditarPracticaState extends State<_DialogEditarPractica> {
                 ]),
                 const SizedBox(height: NexusSizes.spaceMD),
                 DropdownButtonFormField<String>(
-                  value: _estado,
+                  initialValue: _estado,
                   decoration: _deco('Estado'),
                   items: _estados.map((e) =>
                       DropdownMenuItem(value: e, child: Text(e))).toList(),
@@ -3086,7 +3061,7 @@ class _DialogEditarPracticaState extends State<_DialogEditarPractica> {
                 ),
                 const SizedBox(height: NexusSizes.spaceMD),
                 DropdownButtonFormField<EmpresaModel>(
-                  value: _empresa,
+                  initialValue: _empresa,
                   decoration: _deco('Empresa'),
                   items: admin.empresas
                       .map((e) => DropdownMenuItem(value: e, child: Text(e.nombre)))
