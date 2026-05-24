@@ -270,6 +270,17 @@ class _IncidenciaRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(incidencia.descripcion, style: NexusText.small, maxLines: 2, overflow: TextOverflow.ellipsis),
+                if (incidencia.resueltaPorNombre != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Resuelto por ${incidencia.resueltaPorNombre}'
+                    '${incidencia.fechaResolucion != null ? ' · ${_fmtDate(incidencia.fechaResolucion!)}' : ''}',
+                    style: TextStyle(
+                      fontFamily: 'Inter', fontSize: 11,
+                      color: context.nxt.inkTertiary,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

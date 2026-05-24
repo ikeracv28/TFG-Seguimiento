@@ -36,7 +36,8 @@ class IncidenciaControllerTest {
 
     private IncidenciaResponse incidenciaResponse() {
         return new IncidenciaResponse(1L, 10L, 1L, "Carlos García",
-                "LABORAL", "Descripción de incidencia de prueba", "ABIERTA", LocalDateTime.now());
+                "LABORAL", "Descripción de incidencia de prueba", "ABIERTA", LocalDateTime.now(),
+                null, null);
     }
 
     // ─── POST / ─────────────────────────────────────────────────────────────
@@ -151,7 +152,8 @@ class IncidenciaControllerTest {
     @WithMockUser(username = "tutor@centro.com", roles = "TUTOR_CENTRO")
     void tutor_centro_actualiza_estado() throws Exception {
         IncidenciaResponse resuelta = new IncidenciaResponse(1L, 10L, 1L, "Carlos García",
-                "LABORAL", "Descripción de incidencia de prueba", "RESUELTA", LocalDateTime.now());
+                "LABORAL", "Descripción de incidencia de prueba", "RESUELTA", LocalDateTime.now(),
+                "Tutor Centro", LocalDateTime.now());
         when(incidenciaService.actualizarEstado(eq(1L), eq("RESUELTA"), anyString()))
                 .thenReturn(resuelta);
 

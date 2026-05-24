@@ -14,6 +14,9 @@ public interface IncidenciaMapper {
     @Mapping(target = "creadaPorId", source = "creadaPor.id")
     @Mapping(target = "creadaPorNombre",
             expression = "java(incidencia.getCreadaPor().getNombre() + \" \" + incidencia.getCreadaPor().getApellidos())")
+    @Mapping(target = "resueltaPorNombre",
+            expression = "java(incidencia.getResueltaPor() != null ? incidencia.getResueltaPor().getNombre() + \" \" + incidencia.getResueltaPor().getApellidos() : null)")
+    @Mapping(target = "fechaResolucion", source = "fechaResolucion")
     IncidenciaResponse toResponse(Incidencia incidencia);
 
     List<IncidenciaResponse> toResponseList(List<Incidencia> incidencias);

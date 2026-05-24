@@ -380,7 +380,7 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
           ),
         ),
         Expanded(
-          child: ChatPlaceholderScreen(
+          child: ChatScreen(
             key: ValueKey(practicaId),
             practicaId: practicaId,
             canal: 'TUTORES',

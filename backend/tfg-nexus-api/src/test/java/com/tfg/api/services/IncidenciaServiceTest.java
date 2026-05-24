@@ -161,4 +161,19 @@ class IncidenciaServiceTest {
 
         assertThat(lista).hasSize(2);
     }
+
+    @Test
+    @DisplayName("Al resolver una incidencia el response incluye resueltaPorNombre y fechaResolucion")
+    void al_resolver_incidencia_response_contiene_datos_resolucion() {
+        IncidenciaResponse creada = incidenciaService.crear(
+                new IncidenciaRequest("CONFLICTO", "Incidencia que sera resuelta para verificar campos"), alumno.getEmail());
+
+        incidenciaService.actualizarEstado(creada.id(), "EN_PROCESO", tutorCentro.getEmail());
+        IncidenciaResponse resuelta = incidenciaService.actualizarEstado(
+                creada.id(), "RESUELTA", tutorCentro.getEmail());
+
+        assertThat(resuelta.resueltaPorNombre()).isNotNull();
+        assertThat(resuelta.resueltaPorNombre()).contains("Tutor");
+        assertThat(resuelta.fechaResolucion()).isNotNull();
+    }
 }

@@ -2008,22 +2008,35 @@ class _IncidenciaTableRow extends StatelessWidget {
               ),
             Expanded(
               flex: 2,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: estadoBg,
-                    borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: estadoBg,
+                      borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                    ),
+                    child: Text(estadoLabel,
+                        style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: estadoFg),
+                        overflow: TextOverflow.ellipsis),
                   ),
-                  child: Text(estadoLabel,
+                  if (incidencia.resueltaPorNombre != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'por ${incidencia.resueltaPorNombre}',
                       style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: estadoFg),
-                      overflow: TextOverflow.ellipsis),
-                ),
+                          fontFamily: 'Inter', fontSize: 10,
+                          color: context.nxt.inkTertiary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
               ),
             ),
             Expanded(
@@ -2586,12 +2599,12 @@ class _ChatDualPane extends StatelessWidget {
           child: IndexedStack(
             index: canalActivo == 'ALUMNO' ? 0 : 1,
             children: [
-              ChatPlaceholderScreen(
+              ChatScreen(
                 key: ValueKey('alumno-$practicaId'),
                 practicaId: practicaId,
                 canal: 'ALUMNO',
               ),
-              ChatPlaceholderScreen(
+              ChatScreen(
                 key: ValueKey('tutores-$practicaId'),
                 practicaId: practicaId,
                 canal: 'TUTORES',

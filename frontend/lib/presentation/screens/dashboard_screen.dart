@@ -51,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SeguimientosScreen(),
       const IncidenciasScreen(),
       const AusenciasScreen(),
-      const ChatPlaceholderScreen(),
+      const ChatScreen(),
     ];
 
     return Scaffold(
@@ -812,7 +812,7 @@ class _SeguimientoRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(NexusSizes.space2XL, 12, NexusSizes.space2XL, 12),
       child: Row(
         children: [
-          Expanded(flex: 2, child: Text(_fmtDate(s.fechaRegistro), style: NexusText.small)),
+          Expanded(flex: 2, child: Text(_fmtDate(s.fechaRegistro, s.esSemanal), style: NexusText.small)),
           Expanded(
             flex: 4,
             child: Text(
@@ -831,9 +831,15 @@ class _SeguimientoRow extends StatelessWidget {
     );
   }
 
-  static String _fmtDate(DateTime d) {
+  static String _fmtDate(DateTime d, [bool esSemanal = false]) {
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    return '${d.day} ${meses[d.month - 1]}';
+    if (!esSemanal) return '${d.day} ${meses[d.month - 1]}';
+    final inicio = d.subtract(Duration(days: d.weekday - 1));
+    final fin = inicio.add(const Duration(days: 4));
+    if (inicio.month == fin.month) {
+      return 'Sem. ${inicio.day}-${fin.day} ${meses[inicio.month - 1]}';
+    }
+    return 'Sem. ${inicio.day} ${meses[inicio.month - 1]} - ${fin.day} ${meses[fin.month - 1]}';
   }
 }
 

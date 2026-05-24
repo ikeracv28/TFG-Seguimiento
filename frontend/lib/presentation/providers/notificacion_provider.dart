@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../../data/models/notificacion_model.dart';
 import '../../data/services/notificacion_service.dart';
 
 class NotificacionProvider extends ChangeNotifier {

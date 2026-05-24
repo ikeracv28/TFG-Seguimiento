@@ -8,22 +8,22 @@ import '../providers/practica_provider.dart';
 import '../providers/chat_provider.dart';
 import '../widgets/nexus_avatar.dart';
 
-class ChatPlaceholderScreen extends StatefulWidget {
+class ChatScreen extends StatefulWidget {
   final int? practicaId;
   final String canal; // 'ALUMNO' | 'TUTORES'
 
-  const ChatPlaceholderScreen({
+  const ChatScreen({
     super.key,
     this.practicaId,
     this.canal = 'ALUMNO',
   });
 
   @override
-  State<ChatPlaceholderScreen> createState() => _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatPlaceholderScreen> {
-  // Cada instancia de ChatPlaceholderScreen tiene su propio provider/conexión.
+class _ChatScreenState extends State<ChatScreen> {
+  // Cada instancia de ChatScreen tiene su propio provider/conexión.
   final ChatProvider _chat = ChatProvider();
   final TextEditingController _inputCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();

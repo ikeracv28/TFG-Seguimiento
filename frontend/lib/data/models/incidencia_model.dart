@@ -11,6 +11,8 @@ class Incidencia {
   final String descripcion;
   final String estado;
   final DateTime fechaCreacion;
+  final String? resueltaPorNombre;
+  final DateTime? fechaResolucion;
 
   Incidencia({
     required this.id,
@@ -21,6 +23,8 @@ class Incidencia {
     required this.descripcion,
     required this.estado,
     required this.fechaCreacion,
+    this.resueltaPorNombre,
+    this.fechaResolucion,
   });
 
   factory Incidencia.fromJson(Map<String, dynamic> json) {
@@ -33,6 +37,10 @@ class Incidencia {
       descripcion: json['descripcion'],
       estado: json['estado'] ?? 'ABIERTA',
       fechaCreacion: DateTime.parse(json['fechaCreacion']),
+      resueltaPorNombre: json['resueltaPorNombre'],
+      fechaResolucion: json['fechaResolucion'] != null
+          ? DateTime.parse(json['fechaResolucion'])
+          : null,
     );
   }
 
