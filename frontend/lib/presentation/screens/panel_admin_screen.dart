@@ -137,8 +137,8 @@ class _Sidebar extends StatelessWidget {
     return Container(
       width: 200,
       decoration: BoxDecoration(
-        color: context.nxt.surface,
-        border: Border(right: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
+        color: NexusColors.ink,
+        border: Border(right: BorderSide(color: Colors.white12, width: NexusSizes.borderWidth)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -146,9 +146,9 @@ class _Sidebar extends StatelessWidget {
           // Logo
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: const NexusLogo(height: 28),
+            child: const NexusLogo(height: 28, variant: NexusLogoVariant.light),
           ),
-          Divider(height: 1, color: context.nxt.border),
+          Divider(height: 1, color: Colors.white12),
           const SizedBox(height: NexusSizes.spaceSM),
           _NavBtn(
             icon: Icons.dashboard_outlined,
@@ -208,11 +208,11 @@ class _Sidebar extends StatelessWidget {
                         label: Text(count > 9 ? '9+' : '$count',
                             style: const TextStyle(fontSize: 10)),
                         child: Icon(Icons.notifications_none_outlined,
-                            size: 18, color: context.nxt.inkSecondary),
+                            size: 18, color: Colors.white60),
                       ),
                       const SizedBox(width: 12),
                       Text('Notificaciones',
-                          style: TextStyle(fontSize: 13, color: context.nxt.inkSecondary)),
+                          style: const TextStyle(fontSize: 13, color: Colors.white60)),
                     ],
                   ),
                 ),
@@ -257,20 +257,20 @@ class _NavBtn extends StatelessWidget {
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: activo ? NexusColors.surfaceContainerLow : Colors.transparent,
+          color: activo ? NexusColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
         ),
         child: Row(
           children: [
             Icon(icon, size: 18,
-                color: activo ? NexusColors.primary : context.nxt.inkSecondary),
+                color: activo ? Colors.white : Colors.white60),
             const SizedBox(width: 12),
             Expanded(
               child: Text(label,
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: activo ? FontWeight.w600 : FontWeight.w400,
-                      color: activo ? NexusColors.primary : context.nxt.inkSecondary)),
+                      color: activo ? Colors.white : Colors.white60)),
             ),
           ],
         ),

@@ -381,17 +381,17 @@ class _Sidebar extends StatelessWidget {
     return Container(
       width: 180,
       decoration: BoxDecoration(
-        color: context.nxt.surface,
+        color: NexusColors.ink,
         border: Border(
             right: BorderSide(
-                color: context.nxt.border,
+                color: Colors.white12,
                 width: NexusSizes.borderWidth)),
       ),
       child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
-            child: const NexusLogo(height: 26),
+            child: const NexusLogo(height: 26, variant: NexusLogoVariant.light),
           ),
           const SizedBox(height: 10),
           _NavBtn(
@@ -453,12 +453,12 @@ class _Sidebar extends StatelessWidget {
                       child: Text(
                         auth.user!.nombreCompleto.split(' ').first,
                         style: NexusText.small.copyWith(
-                          color: context.nxt.inkSecondary,
+                          color: Colors.white60,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -491,14 +491,14 @@ class _Sidebar extends StatelessWidget {
                           label: Text(count > 9 ? '9+' : '$count',
                               style: const TextStyle(fontSize: 10)),
                           child: Icon(Icons.notifications_none_outlined,
-                              size: 16, color: ctx.nxt.inkSecondary),
+                              size: 16, color: Colors.white60),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Notificaciones',
                             style: NexusText.small.copyWith(
-                              color: ctx.nxt.inkSecondary,
+                              color: Colors.white60,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -514,7 +514,7 @@ class _Sidebar extends StatelessWidget {
           // Tema y logout
           Builder(builder: (ctx) {
             final isDark = Theme.of(ctx).brightness == Brightness.dark;
-            final iconColor = ctx.nxt.inkSecondary;
+            const iconColor = Colors.white60;
             return Column(children: [
               Tooltip(
                 message: isDark ? 'Modo claro' : 'Modo oscuro',
@@ -593,8 +593,7 @@ class _NavBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const color = NexusColors.primary;
-    const bgColor = NexusColors.primaryLight;
+    const bgColor = NexusColors.primary;
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
@@ -614,14 +613,14 @@ class _NavBtn extends StatelessWidget {
               Icon(
                 isActive ? activeIcon : icon,
                 size: 16,
-                color: isActive ? color : context.nxt.inkSecondary,
+                color: isActive ? Colors.white : Colors.white60,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   tooltip,
                   style: NexusText.small.copyWith(
-                    color: isActive ? color : context.nxt.inkSecondary,
+                    color: isActive ? Colors.white : Colors.white60,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -667,7 +666,7 @@ class _NavBadgeBtn extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 8),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
-            color: isActive ? NexusColors.primaryLight : Colors.transparent,
+            color: isActive ? NexusColors.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -679,8 +678,8 @@ class _NavBadgeBtn extends StatelessWidget {
                     isActive ? activeIcon : icon,
                     size: 16,
                     color: isActive
-                        ? NexusColors.primary
-                        : context.nxt.inkSecondary,
+                        ? Colors.white
+                        : Colors.white60,
                   ),
                   if (badgeCount > 0)
                     Positioned(
@@ -693,7 +692,7 @@ class _NavBadgeBtn extends StatelessWidget {
                           color: badgeColor,
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: context.nxt.surface, width: 1.5),
+                              color: NexusColors.ink, width: 1.5),
                         ),
                       ),
                     ),
@@ -705,8 +704,8 @@ class _NavBadgeBtn extends StatelessWidget {
                   tooltip,
                   style: NexusText.small.copyWith(
                     color: isActive
-                        ? NexusColors.primary
-                        : context.nxt.inkSecondary,
+                        ? Colors.white
+                        : Colors.white60,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
                   overflow: TextOverflow.ellipsis,

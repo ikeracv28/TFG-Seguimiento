@@ -797,8 +797,8 @@ class _Sidebar extends StatelessWidget {
     return Container(
       width: 180,
       decoration: BoxDecoration(
-        color: context.nxt.surface,
-        border: Border(right: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
+        color: NexusColors.ink,
+        border: Border(right: BorderSide(color: Colors.white12, width: NexusSizes.borderWidth)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -806,9 +806,9 @@ class _Sidebar extends StatelessWidget {
           // Logo marca
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: NexusLogo(height: 26),
+            child: NexusLogo(height: 26, variant: NexusLogoVariant.light),
           ),
-          Divider(height: 1, color: context.nxt.border),
+          Divider(height: 1, color: Colors.white12),
           const SizedBox(height: 6),
           _NavItem(
             icon: Icons.list_alt_outlined,
@@ -829,7 +829,7 @@ class _Sidebar extends StatelessWidget {
             onTap: () => onTab(2),
           ),
           const Spacer(),
-          Divider(height: 1, color: context.nxt.border),
+          Divider(height: 1, color: Colors.white12),
           // Perfil
           InkWell(
             onTap: () => Navigator.push(context,
@@ -846,7 +846,7 @@ class _Sidebar extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(auth.user!.nombreCompleto,
-                        style: TextStyle(fontSize: 12, color: context.nxt.ink),
+                        style: const TextStyle(fontSize: 12, color: Colors.white),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                   ),
@@ -875,11 +875,11 @@ class _Sidebar extends StatelessWidget {
                         label: Text(count > 9 ? '9+' : '$count',
                             style: const TextStyle(fontSize: 10)),
                         child: Icon(Icons.notifications_none_outlined,
-                            size: 17, color: ctx.nxt.inkSecondary),
+                            size: 17, color: Colors.white60),
                       ),
                       const SizedBox(width: 10),
                       Text('Notificaciones',
-                          style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+                          style: const TextStyle(fontSize: 12, color: Colors.white60)),
                     ],
                   ),
                 ),
@@ -893,10 +893,10 @@ class _Sidebar extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                      size: 17, color: context.nxt.inkSecondary),
+                      size: 17, color: Colors.white60),
                   const SizedBox(width: 10),
                   Text(isDark ? 'Modo claro' : 'Modo oscuro',
-                      style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+                      style: const TextStyle(fontSize: 12, color: Colors.white60)),
                 ],
               ),
             ),
@@ -907,10 +907,10 @@ class _Sidebar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 children: [
-                  Icon(Icons.logout_outlined, size: 17, color: context.nxt.inkSecondary),
+                  Icon(Icons.logout_outlined, size: 17, color: Colors.white60),
                   const SizedBox(width: 10),
                   Text('Cerrar sesión',
-                      style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+                      style: const TextStyle(fontSize: 12, color: Colors.white60)),
                 ],
               ),
             ),
@@ -937,20 +937,20 @@ class _NavItem extends StatelessWidget {
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: selected ? NexusColors.surfaceContainerLow : Colors.transparent,
+          color: selected ? NexusColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
         ),
         child: Row(
           children: [
             Icon(icon, size: 16,
-                color: selected ? NexusColors.primary : context.nxt.inkSecondary),
+                color: selected ? Colors.white : Colors.white60),
             const SizedBox(width: 10),
             Expanded(
               child: Text(label,
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      color: selected ? NexusColors.primary : context.nxt.inkSecondary)),
+                      color: selected ? Colors.white : Colors.white60)),
             ),
           ],
         ),
