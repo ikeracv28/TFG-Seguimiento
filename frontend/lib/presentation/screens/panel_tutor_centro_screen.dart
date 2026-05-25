@@ -458,7 +458,7 @@ class _Sidebar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

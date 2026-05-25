@@ -1565,9 +1565,24 @@ class _EvaluarDialogState extends State<_EvaluarDialog> {
   late bool _cumplimientoEnabled;
   late double _cumplimiento;
 
-  late double _global;
   final _comentarioCtrl = TextEditingController();
   bool _guardando = false;
+
+  double get _notaCalculada {
+    final vals = <double>[
+      if (_actitudEnabled) _actitud,
+      if (_tecnicaEnabled) _tecnica,
+      if (_iniciativaEnabled) _iniciativa,
+      if (_equipoEnabled) _equipo,
+      if (_cumplimientoEnabled) _cumplimiento,
+    ];
+    if (vals.isEmpty) return 0.0;
+    return vals.reduce((a, b) => a + b) / vals.length;
+  }
+
+  bool get _puedeGuardar =>
+      _actitudEnabled || _tecnicaEnabled || _iniciativaEnabled ||
+      _equipoEnabled || _cumplimientoEnabled;
 
   @override
   void initState() {
@@ -1583,7 +1598,6 @@ class _EvaluarDialogState extends State<_EvaluarDialog> {
     _equipo              = a?.trabajoEquipo ?? 7.0;
     _cumplimientoEnabled = a?.cumplimientoTareas != null;
     _cumplimiento        = a?.cumplimientoTareas ?? 7.0;
-    _global              = a?.notaGlobal ?? 7.0;
     _comentarioCtrl.text = a?.comentario ?? '';
   }
 
@@ -1669,61 +1683,63 @@ class _EvaluarDialogState extends State<_EvaluarDialog> {
 
               const SizedBox(height: 8),
               Divider(height: 1, thickness: 0.5, color: context.nxt.border),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // ── Nota global obligatoria ───────────────────────────────────
-              Row(
-                children: [
-                  Icon(Icons.star_rounded, size: 18, color: _color(_global)),
-                  const SizedBox(width: 8),
-                  Text('Nota global *',
-                      style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
-                  const Spacer(),
-                  Container(
-                    width: 56,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _color(_global).withAlpha(22),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _global.toStringAsFixed(1),
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: _color(_global)),
-                    ),
+              // ── Nota calculada automáticamente ───────────────────────────
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: _puedeGuardar
+                      ? _color(_notaCalculada).withAlpha(18)
+                      : context.nxt.inkTertiary.withAlpha(12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _puedeGuardar
+                        ? _color(_notaCalculada).withAlpha(60)
+                        : context.nxt.border,
                   ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 4,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-                  activeTrackColor: _color(_global),
-                  inactiveTrackColor: _color(_global).withAlpha(40),
-                  thumbColor: _color(_global),
-                  overlayColor: _color(_global).withAlpha(30),
                 ),
-                child: Slider(
-                  value: _global,
-                  min: 0,
-                  max: 10,
-                  divisions: 100,
-                  onChanged: (v) => setState(() => _global = v),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('0', style: NexusText.label.copyWith(color: context.nxt.inkTertiary)),
-                    Text('5', style: NexusText.label.copyWith(color: context.nxt.inkTertiary)),
-                    Text('10', style: NexusText.label.copyWith(color: context.nxt.inkTertiary)),
+                    Icon(Icons.star_rounded, size: 20,
+                        color: _puedeGuardar
+                            ? _color(_notaCalculada)
+                            : context.nxt.inkTertiary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Nota final',
+                              style: NexusText.small
+                                  .copyWith(fontWeight: FontWeight.w600)),
+                          Text(
+                            _puedeGuardar
+                                ? 'Promedio de los criterios activos'
+                                : 'Activa al menos un criterio',
+                            style: NexusText.caption
+                                .copyWith(color: context.nxt.inkSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      _puedeGuardar ? _notaCalculada.toStringAsFixed(1) : '—',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: _puedeGuardar
+                            ? _color(_notaCalculada)
+                            : context.nxt.inkTertiary,
+                      ),
+                    ),
+                    if (_puedeGuardar)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 2, top: 8),
+                        child: Text('/10',
+                            style: NexusText.caption
+                                .copyWith(color: context.nxt.inkSecondary)),
+                      ),
                   ],
                 ),
               ),
@@ -1750,7 +1766,7 @@ class _EvaluarDialogState extends State<_EvaluarDialog> {
           child: const Text('Cancelar'),
         ),
         FilledButton(
-          onPressed: _guardando ? null : _guardar,
+          onPressed: _guardando || !_puedeGuardar ? null : _guardar,
           child: _guardando
               ? const SizedBox(
                   width: 16, height: 16,
@@ -1770,7 +1786,7 @@ class _EvaluarDialogState extends State<_EvaluarDialog> {
       iniciativaAutonomia: _iniciativaEnabled ? _iniciativa : null,
       trabajoEquipo: _equipoEnabled ? _equipo : null,
       cumplimientoTareas: _cumplimientoEnabled ? _cumplimiento : null,
-      notaGlobal: _global,
+      notaGlobal: _notaCalculada,
       comentario: _comentarioCtrl.text.trim().isEmpty ? null : _comentarioCtrl.text.trim(),
     );
     if (mounted) {
