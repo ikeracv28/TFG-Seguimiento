@@ -145,8 +145,7 @@ class MensajeService {
     final body = jsonEncode({'contenido': contenido, 'canal': canal});
     _channel!.sink.add(
       'SEND\ndestination:$destination\n'
-      'content-type:application/json\n'
-      'content-length:${body.length}\n\n'
+      'content-type:application/json\n\n'
       '$body\x00',
     );
   }
