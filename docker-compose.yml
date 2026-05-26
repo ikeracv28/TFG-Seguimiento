@@ -63,6 +63,9 @@ services:
     container_name: nexus-web
     ports:
       - "${FLUTTER_PORT}:80"
+    environment:
+      - API_ORIGIN=${API_ORIGIN:-http://localhost:8080}
+      - WS_ORIGIN=${WS_ORIGIN:-ws://localhost:8080}
     depends_on:
       - backend
     networks:
