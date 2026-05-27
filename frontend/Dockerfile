@@ -31,8 +31,10 @@ COPY nginx.conf.template /etc/nginx/nginx.conf.template
 # Valores por defecto para desarrollo local (sobrescribir en producción)
 ENV API_ORIGIN=http://localhost:8080
 ENV WS_ORIGIN=ws://localhost:8080
+# Railway inyecta PORT dinámicamente; 80 es el fallback para docker-compose local
+ENV PORT=80
 
 EXPOSE 80
 
-# envsubst reemplaza solo las dos variables propias; deja $uri y demás intactos
-CMD ["/bin/sh", "-c", "envsubst '${API_ORIGIN} ${WS_ORIGIN}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# envsubst sustituye PORT, API_ORIGIN y WS_ORIGIN; deja $uri y demás intactos
+CMD ["/bin/sh", "-c", "envsubst '${PORT} ${API_ORIGIN} ${WS_ORIGIN}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
