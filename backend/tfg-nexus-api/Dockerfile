@@ -6,13 +6,12 @@
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
-# Copiamos solo el POM para descargar dependencias y cachear esta capa
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+# Cache mount para el repositorio local de Maven — reutiliza dependencias entre builds
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B
 
-# Copiamos el código fuente y construimos el JAR (saltando los tests para agilizar el build del contenedor)
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests
 
 # =========================================================================
 # Etapa 2: Ejecución (Runtime)
