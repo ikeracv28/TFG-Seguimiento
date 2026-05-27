@@ -7,11 +7,10 @@ FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
 COPY pom.xml .
-# Cache mount para el repositorio local de Maven — reutiliza dependencias entre builds
-RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # =========================================================================
 # Etapa 2: Ejecución (Runtime)
