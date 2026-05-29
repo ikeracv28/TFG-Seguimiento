@@ -106,6 +106,12 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>> crearUsuariosEnBatch(List<Map<String, dynamic>> usuarios) async {
+    final result = await _service.crearUsuariosEnBatch(usuarios);
+    await cargarUsuarios();
+    return result;
+  }
+
   Future<void> toggleActivo(int id) async {
     try {
       final actualizado = await _service.toggleActivo(id);

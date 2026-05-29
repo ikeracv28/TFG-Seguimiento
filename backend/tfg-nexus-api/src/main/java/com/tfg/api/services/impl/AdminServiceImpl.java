@@ -2,6 +2,8 @@ package com.tfg.api.services.impl;
 
 import com.tfg.api.exceptions.BusinessRuleException;
 import com.tfg.api.exceptions.ResourceNotFoundException;
+import com.tfg.api.models.dto.BatchCrearUsuariosRequest;
+import com.tfg.api.models.dto.BatchCrearUsuariosResponse;
 import com.tfg.api.models.dto.CreateUsuarioRequest;
 import com.tfg.api.models.dto.UpdateUsuarioRequest;
 import com.tfg.api.models.dto.UsuarioResponse;
@@ -12,6 +14,7 @@ import com.tfg.api.models.repository.RolRepository;
 import com.tfg.api.models.repository.UsuarioRepository;
 import com.tfg.api.services.AdminService;
 import com.tfg.api.services.AuditService;
+import com.tfg.api.services.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +43,7 @@ public class AdminServiceImpl implements AdminService {
     private final PasswordEncoder passwordEncoder;
     private final UsuarioMapper usuarioMapper;
     private final AuditService auditService;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -68,7 +73,28 @@ public class AdminServiceImpl implements AdminService {
         log.info("ADMIN_CREAR_USUARIO id={} rol={}", guardado.getId(), request.rolNombre());
         auditService.registrar("USUARIOS", "CREAR", guardado.getId(),
                 "Usuario creado: " + guardado.getEmail() + " rol=" + request.rolNombre(), "admin");
+        emailService.enviarCredenciales(request.email(), request.nombre(), request.email(), request.password());
         return usuarioMapper.toResponse(guardado);
+    }
+
+    @Override
+    @Transactional
+    public BatchCrearUsuariosResponse crearUsuariosEnBatch(BatchCrearUsuariosRequest request) {
+        final var creados = new ArrayList<UsuarioResponse>();
+        final var errores = new ArrayList<BatchCrearUsuariosResponse.ErrorDetalle>();
+
+        for (CreateUsuarioRequest u : request.usuarios()) {
+            try {
+                UsuarioResponse resp = crearUsuario(u);
+                creados.add(resp);
+            } catch (Exception ex) {
+                errores.add(new BatchCrearUsuariosResponse.ErrorDetalle(u.email(), ex.getMessage()));
+                log.warn("BATCH_USUARIO_ERROR email={} motivo={}", u.email(), ex.getMessage());
+            }
+        }
+
+        log.info("BATCH_USUARIOS_COMPLETADO creados={} errores={}", creados.size(), errores.size());
+        return new BatchCrearUsuariosResponse(creados.size(), errores.size(), creados, errores);
     }
 
     @Override

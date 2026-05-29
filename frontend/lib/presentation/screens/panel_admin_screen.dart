@@ -1590,6 +1590,16 @@ class _VistaUsuarios extends StatelessWidget {
             children: [
               const Text('Usuarios', style: NexusText.heading2),
               const Spacer(),
+              OutlinedButton.icon(
+                onPressed: () => _mostrarDialogBatch(context),
+                icon: const Icon(Icons.group_add_outlined, size: 16),
+                label: const Text('Crear varios'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: NexusColors.primary,
+                  side: const BorderSide(color: NexusColors.primary),
+                ),
+              ),
+              const SizedBox(width: 10),
               FilledButton.icon(
                 onPressed: () => _mostrarDialogCrear(context),
                 icon: const Icon(Icons.person_add_outlined, size: 16),
@@ -1611,6 +1621,17 @@ class _VistaUsuarios extends StatelessWidget {
       builder: (_) => ChangeNotifierProvider.value(
         value: context.read<AdminProvider>(),
         child: const _DialogCrearUsuario(),
+      ),
+    );
+  }
+
+  void _mostrarDialogBatch(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ChangeNotifierProvider.value(
+        value: context.read<AdminProvider>(),
+        child: const _DialogBatchUsuarios(),
       ),
     );
   }
@@ -1935,6 +1956,380 @@ class _ChipActivoEstado extends StatelessWidget {
 }
 
 // ---- Dialog crear usuario ----
+
+// ---- Dialog crear usuarios en batch ----
+
+class _DialogBatchUsuarios extends StatefulWidget {
+  const _DialogBatchUsuarios();
+  @override
+  State<_DialogBatchUsuarios> createState() => _DialogBatchUsuariosState();
+}
+
+class _DialogBatchUsuariosState extends State<_DialogBatchUsuarios> {
+  static const _roles = ['ROLE_ALUMNO', 'ROLE_TUTOR_CENTRO', 'ROLE_TUTOR_EMPRESA', 'ROLE_ADMIN'];
+  static const _rolesLabel = {
+    'ROLE_ALUMNO': 'Alumno',
+    'ROLE_TUTOR_CENTRO': 'Tutor Centro',
+    'ROLE_TUTOR_EMPRESA': 'Tutor Empresa',
+    'ROLE_ADMIN': 'Admin',
+  };
+
+  final List<_FilaUsuario> _filas = [_FilaUsuario()];
+  bool _enviando = false;
+  Map<String, dynamic>? _resultado;
+
+  @override
+  void dispose() {
+    for (final f in _filas) f.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enviar() async {
+    // Validar que todas las filas tienen datos mínimos
+    for (final f in _filas) {
+      if (f.nombre.isEmpty || f.apellidos.isEmpty || f.email.isEmpty || f.password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Completa todos los campos de cada fila.')),
+        );
+        return;
+      }
+    }
+
+    setState(() => _enviando = true);
+    try {
+      final admin = context.read<AdminProvider>();
+      final lista = _filas.map((f) => {
+        'dni': _generarDni(f.email),
+        'nombre': f.nombre,
+        'apellidos': f.apellidos,
+        'email': f.email,
+        'password': f.password,
+        'rolNombre': f.rol,
+      }).toList();
+
+      final res = await admin.crearUsuariosEnBatch(lista);
+      setState(() { _resultado = res; _enviando = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _enviando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    }
+  }
+
+  String _generarDni(String email) {
+    final hash = email.hashCode.abs() % 99999999;
+    return '${hash.toString().padLeft(8, '0')}B';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.nxt.surface,
+              borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
+              border: Border.all(color: context.nxt.border),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.group_add_outlined, size: 20, color: NexusColors.primary),
+                      const SizedBox(width: 10),
+                      Text('Crear varios usuarios', style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: context.nxt.border),
+
+                if (_resultado != null)
+                  _ResultadoBatch(resultado: _resultado!)
+                else ...[
+                  // Tabla de filas
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 400),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          // Cabecera
+                          _FilaHeader(),
+                          const SizedBox(height: 8),
+                          ..._filas.asMap().entries.map((e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _FilaEditable(
+                              fila: e.value,
+                              roles: _roles,
+                              rolesLabel: _rolesLabel,
+                              onEliminar: _filas.length > 1
+                                  ? () => setState(() {
+                                      e.value.dispose();
+                                      _filas.removeAt(e.key);
+                                    })
+                                  : null,
+                              onChange: () => setState(() {}),
+                            ),
+                          )),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Botones
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => setState(() => _filas.add(_FilaUsuario())),
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Añadir fila'),
+                        ),
+                        const Spacer(),
+                        OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancelar'),
+                        ),
+                        const SizedBox(width: 10),
+                        FilledButton(
+                          onPressed: _enviando ? null : _enviar,
+                          style: FilledButton.styleFrom(backgroundColor: NexusColors.primary),
+                          child: _enviando
+                              ? const SizedBox(width: 18, height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : Text('Crear ${_filas.length} usuario${_filas.length > 1 ? 's' : ''}'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilaUsuario {
+  final nombreCtrl = TextEditingController();
+  final apellidosCtrl = TextEditingController();
+  final emailCtrl = TextEditingController();
+  final passwordCtrl = TextEditingController(text: 'Nexus@2026');
+  String rol = 'ROLE_ALUMNO';
+
+  String get nombre => nombreCtrl.text.trim();
+  String get apellidos => apellidosCtrl.text.trim();
+  String get email => emailCtrl.text.trim();
+  String get password => passwordCtrl.text.trim();
+
+  void dispose() {
+    nombreCtrl.dispose(); apellidosCtrl.dispose();
+    emailCtrl.dispose(); passwordCtrl.dispose();
+  }
+}
+
+class _FilaHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _th('Nombre', 2), _th('Apellidos', 2), _th('Email', 3),
+        _th('Contraseña', 2), _th('Rol', 2), const SizedBox(width: 36),
+      ],
+    );
+  }
+
+  Widget _th(String label, int flex) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Text(label, style: const TextStyle(
+          fontSize: 11, fontWeight: FontWeight.w600, color: NexusColors.inkTertiary)),
+    ),
+  );
+}
+
+class _FilaEditable extends StatelessWidget {
+  final _FilaUsuario fila;
+  final List<String> roles;
+  final Map<String, String> rolesLabel;
+  final VoidCallback? onEliminar;
+  final VoidCallback onChange;
+
+  const _FilaEditable({
+    required this.fila, required this.roles, required this.rolesLabel,
+    required this.onEliminar, required this.onChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _inp(fila.nombreCtrl, 2, 'Nombre'),
+        _inp(fila.apellidosCtrl, 2, 'Apellidos'),
+        _inp(fila.emailCtrl, 3, 'email@centro.es'),
+        _inp(fila.passwordCtrl, 2, 'Contraseña'),
+        Expanded(
+          flex: 2,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: DropdownButtonFormField<String>(
+              value: fila.rol,
+              isDense: true,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                    borderSide: BorderSide(color: context.nxt.border)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                    borderSide: BorderSide(color: context.nxt.border)),
+              ),
+              style: NexusText.small,
+              items: roles.map((r) => DropdownMenuItem(value: r, child: Text(rolesLabel[r] ?? r))).toList(),
+              onChanged: (v) { if (v != null) { fila.rol = v; onChange(); } },
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 36,
+          child: onEliminar != null
+              ? IconButton(
+                  icon: const Icon(Icons.remove_circle_outline, size: 18, color: NexusColors.danger),
+                  onPressed: onEliminar,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                )
+              : const SizedBox(width: 36),
+        ),
+      ],
+    );
+  }
+
+  Widget _inp(TextEditingController ctrl, int flex, String hint) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: TextField(
+        controller: ctrl,
+        onChanged: (_) => onChange(),
+        style: NexusText.small,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: hint,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+              borderSide: const BorderSide(color: NexusColors.border)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+              borderSide: const BorderSide(color: NexusColors.border)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+              borderSide: const BorderSide(color: NexusColors.primary, width: 1.5)),
+        ),
+      ),
+    ),
+  );
+}
+
+class _ResultadoBatch extends StatelessWidget {
+  final Map<String, dynamic> resultado;
+  const _ResultadoBatch({required this.resultado});
+
+  @override
+  Widget build(BuildContext context) {
+    final creados = resultado['creados'] as int? ?? 0;
+    final errores = resultado['errores'] as int? ?? 0;
+    final erroresDetalle = (resultado['erroresDetalle'] as List?) ?? [];
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: NexusColors.successLight,
+                  borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                ),
+                child: Text('$creados creado${creados != 1 ? 's' : ''} correctamente',
+                    style: const TextStyle(color: NexusColors.successText,
+                        fontWeight: FontWeight.w600, fontSize: 13)),
+              ),
+              if (errores > 0) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: NexusColors.dangerLight,
+                    borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                  ),
+                  child: Text('$errores con error',
+                      style: const TextStyle(color: NexusColors.dangerText,
+                          fontWeight: FontWeight.w600, fontSize: 13)),
+                ),
+              ],
+            ],
+          ),
+          if (erroresDetalle.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text('Errores:', style: NexusText.small.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            ...erroresDetalle.map((e) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, size: 14, color: NexusColors.danger),
+                  const SizedBox(width: 6),
+                  Flexible(child: Text(
+                    '${e['email']}: ${e['motivo']}',
+                    style: NexusText.caption.copyWith(color: NexusColors.dangerText),
+                  )),
+                ],
+              ),
+            )),
+          ],
+          const SizedBox(height: 20),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(context),
+              style: FilledButton.styleFrom(backgroundColor: NexusColors.primary),
+              child: const Text('Cerrar'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---- Dialog crear usuario individual ----
 
 class _DialogCrearUsuario extends StatefulWidget {
   const _DialogCrearUsuario();

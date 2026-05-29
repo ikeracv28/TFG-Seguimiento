@@ -1,6 +1,8 @@
 package com.tfg.api.controllers;
 
 import com.tfg.api.models.dto.AuditLogResponse;
+import com.tfg.api.models.dto.BatchCrearUsuariosRequest;
+import com.tfg.api.models.dto.BatchCrearUsuariosResponse;
 import com.tfg.api.models.dto.CreateUsuarioRequest;
 import com.tfg.api.models.dto.UpdateUsuarioRequest;
 import com.tfg.api.models.dto.UsuarioResponse;
@@ -36,6 +38,13 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UsuarioResponse> crearUsuario(@Valid @RequestBody CreateUsuarioRequest request) {
         return new ResponseEntity<>(adminService.crearUsuario(request), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/usuarios/batch")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BatchCrearUsuariosResponse> crearUsuariosEnBatch(
+            @Valid @RequestBody BatchCrearUsuariosRequest request) {
+        return new ResponseEntity<>(adminService.crearUsuariosEnBatch(request), HttpStatus.CREATED);
     }
 
     @PatchMapping("/usuarios/{id}/toggle-activo")

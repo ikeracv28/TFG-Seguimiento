@@ -48,6 +48,21 @@ class AdminService {
     return UsuarioModel.fromJson(response.data as Map<String, dynamic>);
   }
 
+  Future<Map<String, dynamic>> crearUsuariosEnBatch(List<Map<String, dynamic>> usuarios) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/admin/usuarios/batch',
+        data: {'usuarios': usuarios},
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = (data is Map ? data['message'] as String? : null)
+          ?? 'Error al crear usuarios en batch';
+      throw Exception(message);
+    }
+  }
+
   Future<UsuarioModel> editarUsuario({
     required int id,
     required String dni,
