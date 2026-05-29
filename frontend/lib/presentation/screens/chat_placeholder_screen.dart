@@ -103,6 +103,19 @@ class _ChatScreenState extends State<ChatScreen> {
     final file = result.files.first;
     if (file.bytes == null) return;
 
+    const maxBytes = 10 * 1024 * 1024; // 10 MB
+    if (file.bytes!.length > maxBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('El archivo supera los 10 MB permitidos. Elige un archivo más pequeño.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _subiendoAdjunto = true);
     try {
       await _chat.enviarAdjunto(
@@ -111,10 +124,13 @@ class _ChatScreenState extends State<ChatScreen> {
         mimeType: 'application/pdf',
       );
       _scrollAlFinal();
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
+        final mensaje = e.toString().contains('10 MB') || e.toString().contains('tamaño')
+            ? 'El archivo supera los 10 MB permitidos.'
+            : 'Error al subir el adjunto. Inténtalo de nuevo.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al subir el adjunto')),
+          SnackBar(content: Text(mensaje), duration: const Duration(seconds: 4)),
         );
       }
     } finally {
