@@ -153,15 +153,6 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                 bg: NexusColors.successLight,
                 labelColor: NexusColors.successText,
               ),
-              _StatTile(
-                value: provider.totalHorasConvenio > 0
-                    ? fmtH(provider.totalHorasRestantes)
-                    : '—',
-                label: 'Horas restantes',
-                accent: context.nxt.inkSecondary,
-                bg: context.nxt.surfaceAlt,
-                labelColor: context.nxt.inkSecondary,
-              ),
             ];
             if (cst.maxWidth < 600) {
               return Column(
@@ -169,8 +160,6 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                   tiles[0],
                   const SizedBox(height: 10),
                   tiles[1],
-                  const SizedBox(height: 10),
-                  tiles[2],
                 ],
               );
             }
@@ -179,12 +168,16 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
                 Expanded(child: tiles[0]),
                 const SizedBox(width: 10),
                 Expanded(child: tiles[1]),
-                const SizedBox(width: 10),
-                Expanded(child: tiles[2]),
               ],
             );
           }),
-          const SizedBox(height: 28),
+          const SizedBox(height: 16),
+
+          // ── Horas restantes por alumno ─────────────────────────────────
+          if (provider.practicas.any((p) => p.horasTotales != null && p.horasTotales! > 0)) ...[
+            _HorasRestantesCard(provider: provider),
+            const SizedBox(height: 16),
+          ],
 
           // ── Contenido principal ────────────────────────────────────────
           if (pendientes.isEmpty && ausenciasPendientes.isEmpty)
@@ -1885,6 +1878,100 @@ class _CriterioSlider extends StatelessWidget {
                 onChanged: onChanged,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Horas restantes por alumno ─────────────────────────────────────────────────
+
+class _HorasRestantesCard extends StatelessWidget {
+  final TutorEmpresaProvider provider;
+  const _HorasRestantesCard({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    final practicasConHoras = provider.practicas
+        .where((p) => p.horasTotales != null && p.horasTotales! > 0)
+        .toList();
+    if (practicasConHoras.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      decoration: BoxDecoration(
+        color: context.nxt.surface,
+        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+        border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'HORAS RESTANTES POR ALUMNO',
+            style: NexusText.label.copyWith(
+                color: context.nxt.inkTertiary, letterSpacing: 1.2),
+          ),
+          const SizedBox(height: 12),
+          ...practicasConHoras.map((p) {
+            final segs = provider.seguimientosDe(p.id);
+            final validadas = segs
+                .where((s) =>
+                    s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO')
+                .fold(0.0, (sum, s) => sum + s.horasRealizadas);
+            final total = p.horasTotales!;
+            final restantes = (total - validadas).clamp(0.0, total.toDouble());
+            final completado = restantes == 0;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  NexusAvatar(
+                    userId: p.alumnoId,
+                    nombre: p.alumnoNombre,
+                    radius: 14,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      p.alumnoNombre,
+                      style: NexusText.small.copyWith(fontWeight: FontWeight.w500),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (completado)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: NexusColors.successLight,
+                        borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                        border: Border.all(
+                            color: NexusColors.success.withAlpha(60), width: 0.5),
+                      ),
+                      child: const Text(
+                        'Completado',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: NexusColors.successText),
+                      ),
+                    )
+                  else
+                    Text(
+                      fmtH(restantes),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: context.nxt.inkSecondary,
+                          letterSpacing: -0.3),
+                    ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
