@@ -576,7 +576,7 @@ class _ProgresoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final horasValidadas = seguimientos
-        .where((s) => s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO')
+        .where((s) => s.estado == 'COMPLETADO')
         .fold(0.0, (sum, s) => sum + s.horasRealizadas);
     final horasRegistradas = seguimientos.fold(0.0, (sum, s) => sum + s.horasRealizadas);
     final horasTotales = practica.horasTotales ?? 0;

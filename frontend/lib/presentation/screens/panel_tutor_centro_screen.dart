@@ -73,7 +73,6 @@ class _PanelTutorCentroScreenState extends State<PanelTutorCentroScreen> {
                       _ => _DetailPanel(
                           provider: provider,
                           auth: auth,
-                          onValidar: _confirmarValidar,
                           onCambiarEstadoIncidencia: _mostrarModalEstado,
                           onChatTap: () => setState(() {
                             _mode = _Mode.chat;
@@ -119,7 +118,7 @@ class _PanelTutorCentroScreenState extends State<PanelTutorCentroScreen> {
   Widget _buildWidePanel(TutorCentroProvider provider) {
     switch (_mode) {
       case _Mode.partes:
-        return _AllPartesPanel(provider: provider, onValidar: _confirmarValidar);
+        return _AllPartesPanel(provider: provider);
       case _Mode.incidencias:
         return _AllIncidenciasPanel(
             provider: provider, onCambiarEstado: _mostrarModalEstado);
@@ -139,7 +138,7 @@ class _PanelTutorCentroScreenState extends State<PanelTutorCentroScreen> {
   Widget _buildMobileBody(TutorCentroProvider provider, AuthProvider auth) {
     switch (_mode) {
       case _Mode.partes:
-        return _AllPartesPanel(provider: provider, onValidar: _confirmarValidar);
+        return _AllPartesPanel(provider: provider);
       case _Mode.incidencias:
         return _AllIncidenciasPanel(
             provider: provider, onCambiarEstado: _mostrarModalEstado);
@@ -161,7 +160,6 @@ class _PanelTutorCentroScreenState extends State<PanelTutorCentroScreen> {
         return _DetailPanel(
           provider: provider,
           auth: auth,
-          onValidar: _confirmarValidar,
           onCambiarEstadoIncidencia: _mostrarModalEstado,
           showBackButton: true,
           onBack: () => provider.seleccionar(-1),
@@ -177,36 +175,7 @@ class _PanelTutorCentroScreenState extends State<PanelTutorCentroScreen> {
     }
   }
 
-  Future<void> _confirmarValidar(int id) async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Dar visto bueno'),
-        content: const Text(
-            '¿Confirmas que este parte cumple los requisitos formativos?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Confirmar')),
-        ],
-      ),
-    );
-    if (confirmar != true || !mounted) return;
-
-    final ok =
-        await context.read<TutorCentroProvider>().validarCentro(id);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok
-            ? 'Parte completado correctamente'
-            : 'Error al completar el parte'),
-        backgroundColor: ok ? NexusColors.success : NexusColors.danger,
-      ));
-    }
-  }
+  // _confirmarValidar eliminado: la validación del tutor de centro ya no es requerida.
 
   Future<void> _mostrarModalEstado(Incidencia incidencia) async {
     final siguientes = _siguientesEstados(incidencia.estado);
@@ -945,7 +914,6 @@ class _MiniPill extends StatelessWidget {
 class _DetailPanel extends StatelessWidget {
   final TutorCentroProvider provider;
   final AuthProvider auth;
-  final void Function(int) onValidar;
   final void Function(Incidencia) onCambiarEstadoIncidencia;
   final bool showBackButton;
   final VoidCallback? onBack;
@@ -955,7 +923,6 @@ class _DetailPanel extends StatelessWidget {
   const _DetailPanel({
     required this.provider,
     required this.auth,
-    required this.onValidar,
     required this.onCambiarEstadoIncidencia,
     this.showBackButton = false,
     this.onBack,
@@ -1175,7 +1142,6 @@ class _DetailPanel extends StatelessWidget {
                           return _ParteRow(
                             seguimiento: e.value,
                             isLast: e.key == pendientes.length - 1,
-                            onValidar: () => onValidar(e.value.id),
                           );
                         }).toList(),
                       ),
@@ -1267,8 +1233,7 @@ class _DetailPanel extends StatelessWidget {
 
 class _AllPartesPanel extends StatelessWidget {
   final TutorCentroProvider provider;
-  final void Function(int) onValidar;
-  const _AllPartesPanel({required this.provider, required this.onValidar});
+  const _AllPartesPanel({required this.provider});
 
   @override
   Widget build(BuildContext context) {
@@ -1344,7 +1309,7 @@ class _AllPartesPanel extends StatelessWidget {
                               const _ColH('Fecha', flex: 2),
                               const _ColH('Horas', flex: 2),
                               if (!isMobile) const _ColH('Descripción', flex: 3),
-                              _ColH('Acción', flex: isMobile ? 2 : 2),
+                              _ColH('Estado', flex: isMobile ? 2 : 2),
                             ],
                           ),
                         );
@@ -1357,7 +1322,6 @@ class _AllPartesPanel extends StatelessWidget {
                           alumnoNombre: p?.alumnoNombre ?? 'Alumno',
                           alumnoId: p?.alumnoId ?? 0,
                           empresaNombre: p?.empresaNombre ?? '',
-                          onValidar: () => onValidar(s.id),
                         );
                       }),
                       Padding(
@@ -2041,14 +2005,12 @@ class _ParteTableRow extends StatelessWidget {
   final String alumnoNombre;
   final int alumnoId;
   final String empresaNombre;
-  final VoidCallback onValidar;
 
   const _ParteTableRow({
     required this.seguimiento,
     required this.alumnoNombre,
     required this.alumnoId,
     required this.empresaNombre,
-    required this.onValidar,
   });
 
   @override
@@ -2075,34 +2037,7 @@ class _ParteTableRow extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
       );
-      final validarBtn = isMobile
-          ? IconButton(
-              onPressed: onValidar,
-              icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-              color: NexusColors.success,
-              tooltip: 'Validar',
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-            )
-          : InkWell(
-              onTap: onValidar,
-              borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: NexusColors.successLight,
-                  borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle_outline_rounded, size: 12, color: NexusColors.successText),
-                    SizedBox(width: 4),
-                    Text('Validar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NexusColors.successText, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-            );
+      final estadoBadge = _EstadoSeguimientoBadge(estado: seguimiento.estado);
 
       return Container(
         decoration: BoxDecoration(
@@ -2155,11 +2090,48 @@ class _ParteTableRow extends StatelessWidget {
                   ),
                 ),
               ),
-            Expanded(flex: 2, child: Align(alignment: Alignment.centerLeft, child: validarBtn)),
+            Expanded(flex: 2, child: Align(alignment: Alignment.centerLeft, child: estadoBadge)),
           ],
         ),
       );
     });
+  }
+}
+
+// ── Badge de estado seguimiento (solo lectura) ────────────────────────────────
+
+class _EstadoSeguimientoBadge extends StatelessWidget {
+  final String estado;
+  const _EstadoSeguimientoBadge({required this.estado});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final (label, bg, fg) = switch (estado) {
+      'COMPLETADO'       => ('Completado',
+          isDark ? const Color(0xFF1E3D10) : NexusColors.successLight,
+          isDark ? const Color(0xFF86C962) : NexusColors.successText),
+      'RECHAZADO'        => ('Rechazado',
+          isDark ? const Color(0xFF4A1515) : NexusColors.dangerLight,
+          isDark ? const Color(0xFFFF8A80) : NexusColors.dangerText),
+      'PENDIENTE_EMPRESA'=> ('Pend. empresa',
+          isDark ? const Color(0xFF3D2A06) : NexusColors.warningLight,
+          isDark ? const Color(0xFFFFB74D) : NexusColors.warningText),
+      _                  => ('Pendiente',
+          isDark ? const Color(0xFF0D2B4F) : NexusColors.primaryLight,
+          isDark ? const Color(0xFF7AB5F5) : NexusColors.primaryText),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+      ),
+      child: Text(label,
+          style: TextStyle(fontFamily: 'Inter', fontSize: 12,
+              fontWeight: FontWeight.w500, color: fg),
+          overflow: TextOverflow.ellipsis),
+    );
   }
 }
 
@@ -2193,12 +2165,10 @@ class _ColH extends StatelessWidget {
 class _ParteRow extends StatelessWidget {
   final Seguimiento seguimiento;
   final bool isLast;
-  final VoidCallback onValidar;
 
   const _ParteRow({
     required this.seguimiento,
     required this.isLast,
-    required this.onValidar,
   });
 
   @override
@@ -2246,25 +2216,7 @@ class _ParteRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          InkWell(
-            onTap: onValidar,
-            borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: NexusColors.successLight,
-                borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.check_circle_outline_rounded, size: 12, color: NexusColors.successText),
-                  SizedBox(width: 4),
-                  Text('Validar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NexusColors.successText, fontFamily: 'Inter')),
-                ],
-              ),
-            ),
-          ),
+          _EstadoSeguimientoBadge(estado: seguimiento.estado),
         ],
       ),
     );

@@ -50,8 +50,8 @@ class SeguimientoService {
     }
   }
 
-  /// Primera validación por el tutor de empresa.
-  /// [nuevoEstado] debe ser PENDIENTE_CENTRO o RECHAZADO.
+  /// Validación por el tutor de empresa.
+  /// [nuevoEstado] debe ser COMPLETADO o RECHAZADO.
   /// [motivo] es obligatorio si nuevoEstado == RECHAZADO.
   Future<Seguimiento> validarEmpresa(int id, String nuevoEstado, {String? motivo}) async {
     try {

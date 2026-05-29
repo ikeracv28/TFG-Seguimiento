@@ -78,7 +78,7 @@ class SeguimientoServiceTest {
     }
 
     @Test
-    @DisplayName("Tutor de empresa aprueba un parte: estado pasa a PENDIENTE_CENTRO")
+    @DisplayName("Tutor de empresa aprueba un parte: estado pasa directamente a COMPLETADO")
     void should_validate_empresa() {
         setSecurityContext("alumno@test.com");
         SeguimientoResponse reg = seguimientoService.registrar(new SeguimientoRequest(
@@ -86,9 +86,9 @@ class SeguimientoServiceTest {
         ));
 
         setSecurityContext("empresa@test.com");
-        SeguimientoResponse result = seguimientoService.validarEmpresa(reg.id(), "PENDIENTE_CENTRO", null);
+        SeguimientoResponse result = seguimientoService.validarEmpresa(reg.id(), "COMPLETADO", null);
 
-        assertThat(result.estado()).isEqualTo("PENDIENTE_CENTRO");
+        assertThat(result.estado()).isEqualTo("COMPLETADO");
         assertThat(result.validadoPorNombre()).contains("Tutor Empresa");
     }
 }

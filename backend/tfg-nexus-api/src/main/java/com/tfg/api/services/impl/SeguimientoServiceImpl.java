@@ -140,7 +140,7 @@ public class SeguimientoServiceImpl implements SeguimientoService {
         if (!"PENDIENTE_EMPRESA".equals(seguimiento.getEstado())) {
             throw new BusinessRuleException("Este parte ya fue procesado por la empresa");
         }
-        if (!"PENDIENTE_CENTRO".equals(nuevoEstado) && !"RECHAZADO".equals(nuevoEstado)) {
+        if (!"COMPLETADO".equals(nuevoEstado) && !"RECHAZADO".equals(nuevoEstado)) {
             throw new BusinessRuleException("Estado no válido para la empresa: " + nuevoEstado);
         }
         if ("RECHAZADO".equals(nuevoEstado) && (motivo == null || motivo.isBlank())) {
@@ -166,9 +166,9 @@ public class SeguimientoServiceImpl implements SeguimientoService {
             notificacionService.crear(alumnoId, "SEGUIMIENTO",
                     "Tu parte de seguimiento del " + seguimiento.getFechaRegistro() + " ha sido rechazado. Motivo: " + motivo);
         } else {
-            log.info("SEGUIMIENTO_VALIDADO_EMPRESA id={} por_tutor={}", id, emailTutor);
+            log.info("SEGUIMIENTO_COMPLETADO_EMPRESA id={} por_tutor={}", id, emailTutor);
             notificacionService.crear(alumnoId, "SEGUIMIENTO",
-                    "Tu parte de seguimiento del " + seguimiento.getFechaRegistro() + " ha sido aprobado por la empresa.");
+                    "Tu parte de seguimiento del " + seguimiento.getFechaRegistro() + " ha sido validado y completado.");
         }
 
         SeguimientoResponse validado = seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
@@ -180,35 +180,8 @@ public class SeguimientoServiceImpl implements SeguimientoService {
     @Override
     @Transactional
     public SeguimientoResponse validarCentro(Long id) {
-        Seguimiento seguimiento = seguimientoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
-
-        if (!"PENDIENTE_CENTRO".equals(seguimiento.getEstado())) {
-            throw new BusinessRuleException(
-                    "El parte debe ser validado por la empresa antes de que el centro actúe");
-        }
-
-        String emailTutor = currentUserEmail();
-        if (!seguimiento.getPractica().getTutorCentro().getEmail().equals(emailTutor)) {
-            throw new AccessDeniedException("No tienes permiso para validar este parte");
-        }
-
-        Usuario tutorCentro = usuarioRepository.findByEmail(emailTutor)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no identificado"));
-
-        seguimiento.setEstado("COMPLETADO");
-        seguimiento.setValidadoPor(tutorCentro);
-        log.info("SEGUIMIENTO_COMPLETADO id={} por_tutor={}", id, emailTutor);
-
-        SeguimientoResponse completado = seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
-        auditService.registrar("SEGUIMIENTOS", "VALIDAR_CENTRO", id,
-                "Seguimiento completado", emailTutor);
-
-        Long alumnoId = seguimiento.getPractica().getAlumno().getId();
-        notificacionService.crear(alumnoId, "SEGUIMIENTO",
-                "Tu parte de seguimiento del " + seguimiento.getFechaRegistro() + " ha sido completado y validado por el tutor del centro.");
-
-        return completado;
+        throw new BusinessRuleException(
+                "La validación del tutor de centro no es requerida: el parte queda completado con la validación del tutor de empresa.");
     }
 
     @Override

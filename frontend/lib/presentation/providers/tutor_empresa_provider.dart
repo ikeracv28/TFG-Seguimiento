@@ -45,7 +45,7 @@ class TutorEmpresaProvider extends ChangeNotifier {
 
   int get totalValidados => _todosSeguimientosPorPractica.values
       .expand((l) => l)
-      .where((s) => s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO')
+      .where((s) => s.estado == 'COMPLETADO')
       .length;
 
   // Solo prácticas ACTIVAS para los stats principales (evita sumar convenios finalizados)
@@ -57,7 +57,7 @@ class TutorEmpresaProvider extends ChangeNotifier {
         final segs = _todosSeguimientosPorPractica[p.id] ?? [];
         return sum +
             segs
-                .where((s) => s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO')
+                .where((s) => s.estado == 'COMPLETADO')
                 .fold(0.0, (s2, seg) => s2 + seg.horasRealizadas);
       });
 
@@ -135,7 +135,7 @@ class TutorEmpresaProvider extends ChangeNotifier {
 
   Future<bool> validar(int seguimientoId) async {
     try {
-      await _seguimientoService.validarEmpresa(seguimientoId, 'PENDIENTE_CENTRO');
+      await _seguimientoService.validarEmpresa(seguimientoId, 'COMPLETADO');
       await cargar();
       return true;
     } catch (_) {

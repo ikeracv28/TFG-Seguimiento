@@ -129,14 +129,14 @@ class SeguimientoControllerTest {
     @DisplayName("TUTOR_EMPRESA puede aprobar un seguimiento")
     @WithMockUser(roles = "TUTOR_EMPRESA")
     void tutor_empresa_valida_seguimiento() throws Exception {
-        when(seguimientoService.validarEmpresa(eq(1L), eq("PENDIENTE_CENTRO"), isNull()))
-                .thenReturn(seguimientoResponse("PENDIENTE_CENTRO"));
+        when(seguimientoService.validarEmpresa(eq(1L), eq("COMPLETADO"), isNull()))
+                .thenReturn(seguimientoResponse("COMPLETADO"));
 
         mockMvc.perform(patch("/api/v1/seguimientos/1/validar-empresa")
                         .with(csrf())
-                        .param("nuevoEstado", "PENDIENTE_CENTRO"))
+                        .param("nuevoEstado", "COMPLETADO"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.estado").value("PENDIENTE_CENTRO"));
+                .andExpect(jsonPath("$.estado").value("COMPLETADO"));
     }
 
     @Test
@@ -160,7 +160,7 @@ class SeguimientoControllerTest {
     void alumno_no_puede_validar_empresa() throws Exception {
         mockMvc.perform(patch("/api/v1/seguimientos/1/validar-empresa")
                         .with(csrf())
-                        .param("nuevoEstado", "PENDIENTE_CENTRO"))
+                        .param("nuevoEstado", "COMPLETADO"))
                 .andExpect(status().isForbidden());
     }
 

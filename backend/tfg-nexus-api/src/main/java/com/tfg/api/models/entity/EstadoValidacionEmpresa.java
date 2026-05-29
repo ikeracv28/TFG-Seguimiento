@@ -5,7 +5,7 @@ package com.tfg.api.models.entity;
  * Reemplaza el parámetro String libre en validarEmpresa() — A04/OWASP.
  */
 public enum EstadoValidacionEmpresa {
-    PENDIENTE_CENTRO,
+    COMPLETADO,
     RECHAZADO;
 
     public String valor() {

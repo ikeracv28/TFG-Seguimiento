@@ -74,19 +74,19 @@ class SeguimientoDoubleValidationTest {
     }
 
     // ------------------------------------------------------------------ //
-    // CASO 2: Tutor empresa aprueba → PENDIENTE_CENTRO                    //
+    // CASO 2: Tutor empresa aprueba → COMPLETADO (flujo simplificado)     //
     // ------------------------------------------------------------------ //
     @Test
-    @DisplayName("Caso 2: tutor empresa valida parte, estado pasa a PENDIENTE_CENTRO")
+    @DisplayName("Caso 2: tutor empresa valida parte, estado pasa directamente a COMPLETADO")
     void caso2_tutor_empresa_valida() {
         setSecurityContext("alumno@validacion.test");
         SeguimientoResponse reg = seguimientoService.registrar(
                 new SeguimientoRequest(practica.getId(), LocalDate.now(), 8.0, "Segunda semana", null));
 
         setSecurityContext(EMAIL_TUTOR_EMPRESA);
-        SeguimientoResponse result = seguimientoService.validarEmpresa(reg.id(), "PENDIENTE_CENTRO", null);
+        SeguimientoResponse result = seguimientoService.validarEmpresa(reg.id(), "COMPLETADO", null);
 
-        assertThat(result.estado()).isEqualTo("PENDIENTE_CENTRO");
+        assertThat(result.estado()).isEqualTo("COMPLETADO");
         assertThat(result.validadoPorNombre()).contains("Tutor Empresa");
     }
 
@@ -117,11 +117,11 @@ class SeguimientoDoubleValidationTest {
     }
 
     // ------------------------------------------------------------------ //
-    // CASO 4: Tutor centro salta el orden → BusinessRuleException          //
+    // CASO 4: Tutor centro no puede validar — endpoint eliminado del flujo //
     // ------------------------------------------------------------------ //
     @Test
-    @DisplayName("Caso 4: tutor centro no puede validar un parte que aún está en PENDIENTE_EMPRESA")
-    void caso4_tutor_centro_no_puede_saltarse_el_orden() {
+    @DisplayName("Caso 4: tutor centro no puede validar — la validación del centro ya no es requerida")
+    void caso4_tutor_centro_no_puede_validar() {
         setSecurityContext("alumno@validacion.test");
         SeguimientoResponse reg = seguimientoService.registrar(
                 new SeguimientoRequest(practica.getId(), LocalDate.now(), 8.0, "Cuarta semana", null));
@@ -129,27 +129,24 @@ class SeguimientoDoubleValidationTest {
         setSecurityContext(EMAIL_TUTOR_CENTRO);
         assertThatThrownBy(() -> seguimientoService.validarCentro(reg.id()))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("debe ser validado por la empresa");
+                .hasMessageContaining("no es requerida");
     }
 
     // ------------------------------------------------------------------ //
-    // FLUJO COMPLETO: empresa → centro → COMPLETADO                       //
+    // FLUJO COMPLETO: solo tutor empresa → COMPLETADO                     //
     // ------------------------------------------------------------------ //
     @Test
-    @DisplayName("Flujo completo: empresa valida y centro completa, estado final es COMPLETADO")
-    void flujo_completo_empresa_luego_centro() {
+    @DisplayName("Flujo completo simplificado: empresa valida, estado final es COMPLETADO sin intervención del centro")
+    void flujo_completo_solo_empresa() {
         setSecurityContext("alumno@validacion.test");
         SeguimientoResponse reg = seguimientoService.registrar(
                 new SeguimientoRequest(practica.getId(), LocalDate.now(), 8.0, "Quinta semana", null));
 
         setSecurityContext(EMAIL_TUTOR_EMPRESA);
-        seguimientoService.validarEmpresa(reg.id(), "PENDIENTE_CENTRO", null);
-
-        setSecurityContext(EMAIL_TUTOR_CENTRO);
-        SeguimientoResponse completado = seguimientoService.validarCentro(reg.id());
+        SeguimientoResponse completado = seguimientoService.validarEmpresa(reg.id(), "COMPLETADO", null);
 
         assertThat(completado.estado()).isEqualTo("COMPLETADO");
-        assertThat(completado.validadoPorNombre()).contains("Tutor Centro");
+        assertThat(completado.validadoPorNombre()).contains("Tutor Empresa");
     }
 
     private void setSecurityContext(String email) {
