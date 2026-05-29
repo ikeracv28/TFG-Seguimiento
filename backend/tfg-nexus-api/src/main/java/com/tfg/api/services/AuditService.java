@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AuditService {
@@ -34,11 +37,16 @@ public class AuditService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AuditLogResponse> listar(String modulo, Pageable pageable) {
-        Page<AuditLog> page = (modulo == null || modulo.isBlank())
-                ? repo.findAllByOrderByFechaDesc(pageable)
-                : repo.findByModuloOrderByFechaDesc(modulo.toUpperCase(), pageable);
-        return page.map(this::toResponse);
+    public Page<AuditLogResponse> listar(String modulo, String email, String accion,
+                                          LocalDate fechaDesde, LocalDate fechaHasta,
+                                          Pageable pageable) {
+        String moduloFiltro = (modulo == null || modulo.isBlank()) ? null : modulo.toUpperCase();
+        String emailFiltro  = (email  == null || email.isBlank())  ? null : email.trim();
+        String accionFiltro = (accion == null || accion.isBlank()) ? null : accion.trim();
+        LocalDateTime desde = fechaDesde != null ? fechaDesde.atStartOfDay() : null;
+        LocalDateTime hasta = fechaHasta != null ? fechaHasta.plusDays(1).atStartOfDay() : null;
+        return repo.filtrar(moduloFiltro, emailFiltro, accionFiltro, desde, hasta, pageable)
+                   .map(this::toResponse);
     }
 
     private AuditLogResponse toResponse(AuditLog l) {

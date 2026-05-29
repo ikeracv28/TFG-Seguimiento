@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -65,7 +66,11 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<AuditLogResponse>> listarAuditLogs(
             @RequestParam(required = false) String modulo,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String accion,
+            @RequestParam(required = false) LocalDate fechaDesde,
+            @RequestParam(required = false) LocalDate fechaHasta,
             @PageableDefault(size = 50, sort = "fecha") Pageable pageable) {
-        return ResponseEntity.ok(auditService.listar(modulo, pageable));
+        return ResponseEntity.ok(auditService.listar(modulo, email, accion, fechaDesde, fechaHasta, pageable));
     }
 }

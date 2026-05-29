@@ -269,11 +269,23 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> cargarAuditLogs({String? modulo}) async {
+  Future<void> cargarAuditLogs({
+    String? modulo,
+    String? email,
+    String? accion,
+    String? fechaDesde,
+    String? fechaHasta,
+  }) async {
     _cargandoAudit = true;
     notifyListeners();
     try {
-      _auditLogs = await _service.listarAuditLogs(modulo: modulo);
+      _auditLogs = await _service.listarAuditLogs(
+        modulo: modulo,
+        email: email,
+        accion: accion,
+        fechaDesde: fechaDesde,
+        fechaHasta: fechaHasta,
+      );
     } catch (_) {
       _auditLogs = [];
     } finally {

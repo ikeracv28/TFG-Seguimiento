@@ -242,9 +242,21 @@ class AdminService {
 
   // ---- Audit logs ----
 
-  Future<List<AuditLogModel>> listarAuditLogs({String? modulo, int page = 0, int size = 50}) async {
+  Future<List<AuditLogModel>> listarAuditLogs({
+    String? modulo,
+    String? email,
+    String? accion,
+    String? fechaDesde,
+    String? fechaHasta,
+    int page = 0,
+    int size = 50,
+  }) async {
     final params = <String, dynamic>{'page': page, 'size': size, 'sort': 'fecha,desc'};
     if (modulo != null) params['modulo'] = modulo;
+    if (email != null && email.isNotEmpty) params['email'] = email;
+    if (accion != null && accion.isNotEmpty) params['accion'] = accion;
+    if (fechaDesde != null) params['fechaDesde'] = fechaDesde;
+    if (fechaHasta != null) params['fechaHasta'] = fechaHasta;
     final response = await _apiClient.dio.get('/admin/audit-logs', queryParameters: params);
     final content = response.data['content'] as List;
     return content.map((j) => AuditLogModel.fromJson(j as Map<String, dynamic>)).toList();

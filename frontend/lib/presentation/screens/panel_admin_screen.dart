@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../widgets/pagination_bar.dart';
@@ -3013,6 +3014,10 @@ class _VistaAuditoria extends StatefulWidget {
 class _VistaAuditoriaState extends State<_VistaAuditoria> {
   static const _modulos = ['TODOS', 'USUARIOS', 'PRACTICAS', 'AUSENCIAS', 'INCIDENCIAS', 'SEGUIMIENTOS'];
   String _moduloSeleccionado = 'TODOS';
+  final _emailCtrl = TextEditingController();
+  final _accionCtrl = TextEditingController();
+  DateTime? _fechaDesde;
+  DateTime? _fechaHasta;
 
   static const _coloresModulo = {
     'USUARIOS': NexusColors.danger,
@@ -3030,16 +3035,63 @@ class _VistaAuditoriaState extends State<_VistaAuditoria> {
     });
   }
 
-  void _cambiarModulo(String modulo) {
-    setState(() => _moduloSeleccionado = modulo);
-    final filtro = modulo == 'TODOS' ? null : modulo;
-    context.read<AdminProvider>().cargarAuditLogs(modulo: filtro);
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _accionCtrl.dispose();
+    super.dispose();
+  }
+
+  String? _fmt(DateTime? d) => d == null
+      ? null
+      : '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  void _aplicarFiltros() {
+    context.read<AdminProvider>().cargarAuditLogs(
+      modulo: _moduloSeleccionado == 'TODOS' ? null : _moduloSeleccionado,
+      email: _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
+      accion: _accionCtrl.text.trim().isEmpty ? null : _accionCtrl.text.trim(),
+      fechaDesde: _fmt(_fechaDesde),
+      fechaHasta: _fmt(_fechaHasta),
+    );
+  }
+
+  void _limpiarFiltros() {
+    setState(() {
+      _moduloSeleccionado = 'TODOS';
+      _emailCtrl.clear();
+      _accionCtrl.clear();
+      _fechaDesde = null;
+      _fechaHasta = null;
+    });
+    context.read<AdminProvider>().cargarAuditLogs();
+  }
+
+  Future<void> _seleccionarFecha({required bool esDesde}) async {
+    final inicial = esDesde ? _fechaDesde : _fechaHasta;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: inicial ?? DateTime.now(),
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (picked == null) return;
+    setState(() => esDesde ? _fechaDesde = picked : _fechaHasta = picked);
+    _aplicarFiltros();
   }
 
   @override
   Widget build(BuildContext context) {
+    final fmtDate = DateFormat('dd/MM/yyyy', 'es_ES');
+    final hayFiltrosActivos = _moduloSeleccionado != 'TODOS' ||
+        _emailCtrl.text.isNotEmpty ||
+        _accionCtrl.text.isNotEmpty ||
+        _fechaDesde != null ||
+        _fechaHasta != null;
+
     return Column(
       children: [
+        // ── Cabecera ──────────────────────────────────────────────────────
         Container(
           color: context.nxt.surface,
           padding: const EdgeInsets.symmetric(
@@ -3048,41 +3100,167 @@ class _VistaAuditoriaState extends State<_VistaAuditoria> {
             children: [
               const Text('Auditoría del sistema', style: NexusText.heading2),
               const Spacer(),
+              if (hayFiltrosActivos)
+                TextButton.icon(
+                  onPressed: _limpiarFiltros,
+                  icon: const Icon(Icons.clear, size: 14),
+                  label: const Text('Limpiar filtros', style: TextStyle(fontSize: 12)),
+                ),
               IconButton(
                 icon: const Icon(Icons.refresh, size: 18),
                 tooltip: 'Recargar',
-                onPressed: () => _cambiarModulo(_moduloSeleccionado),
+                onPressed: _aplicarFiltros,
               ),
             ],
           ),
         ),
+
+        // ── Filtros ───────────────────────────────────────────────────────
         Container(
           color: context.nxt.surface,
-          padding: const EdgeInsets.symmetric(
-              horizontal: NexusSizes.space3XL, vertical: NexusSizes.spaceSM),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _modulos.map((m) {
-                final activo = _moduloSeleccionado == m;
-                final color = m == 'TODOS' ? context.nxt.ink : (_coloresModulo[m] ?? context.nxt.ink);
-                return Padding(
-                  padding: const EdgeInsets.only(right: NexusSizes.spaceSM),
-                  child: FilterChip(
-                    label: Text(m),
-                    selected: activo,
-                    onSelected: (_) => _cambiarModulo(m),
-                    selectedColor: color.withValues(alpha:0.15),
-                    labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: activo ? FontWeight.w600 : FontWeight.normal,
-                        color: activo ? color : context.nxt.inkSecondary),
+          padding: const EdgeInsets.fromLTRB(
+              NexusSizes.space3XL, 0, NexusSizes.space3XL, NexusSizes.spaceMD),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Chips de módulo
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _modulos.map((m) {
+                    final activo = _moduloSeleccionado == m;
+                    final color = m == 'TODOS' ? context.nxt.ink : (_coloresModulo[m] ?? context.nxt.ink);
+                    return Padding(
+                      padding: const EdgeInsets.only(right: NexusSizes.spaceSM),
+                      child: FilterChip(
+                        label: Text(m),
+                        selected: activo,
+                        onSelected: (_) {
+                          setState(() => _moduloSeleccionado = m);
+                          _aplicarFiltros();
+                        },
+                        selectedColor: color.withValues(alpha: 0.15),
+                        labelStyle: TextStyle(
+                            fontSize: 12,
+                            fontWeight: activo ? FontWeight.w600 : FontWeight.normal,
+                            color: activo ? color : context.nxt.inkSecondary),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: NexusSizes.spaceSM),
+              // Fila de filtros de texto y fecha
+              LayoutBuilder(builder: (_, cst) {
+                final isWide = cst.maxWidth > 700;
+                final emailField = SizedBox(
+                  width: isWide ? 220 : double.infinity,
+                  child: TextField(
+                    controller: _emailCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por usuario...',
+                      prefixIcon: const Icon(Icons.person_search_outlined, size: 16),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      suffixIcon: _emailCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 14),
+                              onPressed: () { setState(() => _emailCtrl.clear()); _aplicarFiltros(); })
+                          : null,
+                    ),
+                    style: NexusText.small,
+                    onSubmitted: (_) => _aplicarFiltros(),
+                    onChanged: (_) => setState(() {}),
                   ),
                 );
-              }).toList(),
-            ),
+                final accionField = SizedBox(
+                  width: isWide ? 200 : double.infinity,
+                  child: TextField(
+                    controller: _accionCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por acción...',
+                      prefixIcon: const Icon(Icons.manage_search_outlined, size: 16),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      suffixIcon: _accionCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 14),
+                              onPressed: () { setState(() => _accionCtrl.clear()); _aplicarFiltros(); })
+                          : null,
+                    ),
+                    style: NexusText.small,
+                    onSubmitted: (_) => _aplicarFiltros(),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                );
+                final desdeBtn = OutlinedButton.icon(
+                  onPressed: () => _seleccionarFecha(esDesde: true),
+                  icon: const Icon(Icons.calendar_today_outlined, size: 13),
+                  label: Text(
+                    _fechaDesde != null ? 'Desde: ${fmtDate.format(_fechaDesde!)}' : 'Desde',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    foregroundColor: _fechaDesde != null ? NexusColors.primary : null,
+                  ),
+                );
+                final hastaBtn = OutlinedButton.icon(
+                  onPressed: () => _seleccionarFecha(esDesde: false),
+                  icon: const Icon(Icons.calendar_today_outlined, size: 13),
+                  label: Text(
+                    _fechaHasta != null ? 'Hasta: ${fmtDate.format(_fechaHasta!)}' : 'Hasta',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    foregroundColor: _fechaHasta != null ? NexusColors.primary : null,
+                  ),
+                );
+                final buscarBtn = FilledButton.icon(
+                  onPressed: _aplicarFiltros,
+                  icon: const Icon(Icons.search, size: 14),
+                  label: const Text('Buscar', style: TextStyle(fontSize: 12)),
+                  style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+                );
+
+                if (isWide) {
+                  return Row(
+                    children: [
+                      emailField,
+                      const SizedBox(width: 8),
+                      accionField,
+                      const SizedBox(width: 8),
+                      desdeBtn,
+                      const SizedBox(width: 6),
+                      hastaBtn,
+                      const SizedBox(width: 8),
+                      buscarBtn,
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    emailField, const SizedBox(height: 6),
+                    accionField, const SizedBox(height: 6),
+                    Row(children: [
+                      Expanded(child: desdeBtn),
+                      const SizedBox(width: 6),
+                      Expanded(child: hastaBtn),
+                    ]),
+                    const SizedBox(height: 6),
+                    buscarBtn,
+                  ],
+                );
+              }),
+            ],
           ),
         ),
+        Divider(height: 1, color: context.nxt.border),
+
+        // ── Lista ─────────────────────────────────────────────────────────
         Expanded(child: Consumer<AdminProvider>(
           builder: (context, admin, _) {
             if (admin.cargandoAudit) {
@@ -3090,8 +3268,19 @@ class _VistaAuditoriaState extends State<_VistaAuditoria> {
             }
             if (admin.auditLogs.isEmpty) {
               return Center(
-                child: Text('No hay registros de auditoría.',
-                    style: TextStyle(color: context.nxt.inkSecondary)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.search_off_outlined, size: 40, color: context.nxt.inkTertiary),
+                    const SizedBox(height: 8),
+                    Text(
+                      hayFiltrosActivos
+                          ? 'No hay registros con los filtros aplicados.'
+                          : 'No hay registros de auditoría.',
+                      style: TextStyle(color: context.nxt.inkSecondary),
+                    ),
+                  ],
+                ),
               );
             }
             return ListView.separated(
