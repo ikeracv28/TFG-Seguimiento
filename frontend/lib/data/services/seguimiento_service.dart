@@ -82,4 +82,19 @@ class SeguimientoService {
       throw Exception(msg);
     }
   }
+
+  Future<Seguimiento> firmar(int id, {required String imagenBase64, required String rol}) async {
+    try {
+      final response = await _apiClient.dio.post('/seguimientos/$id/firmar', data: {
+        'imagenBase64': imagenBase64,
+        'rol': rol,
+      });
+      return Seguimiento.fromJson(response.data);
+    } on DioException catch (e) {
+      final msg = (e.response?.data is Map)
+          ? (e.response?.data['message'] ?? 'Error al guardar la firma')
+          : 'Error al guardar la firma';
+      throw Exception(msg);
+    }
+  }
 }

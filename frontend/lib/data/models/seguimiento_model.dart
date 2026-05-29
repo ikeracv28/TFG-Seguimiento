@@ -9,11 +9,18 @@ class Seguimiento {
   final double horasRealizadas;
   final String? descripcion;
   final String estado;
-  final String tipo; // 'DIARIO' o 'SEMANAL'
+  final String tipo;
   final int? validadoPorId;
   final String? validadoPorNombre;
   final String? comentarioTutor;
   final DateTime fechaCreacion;
+  // Firma electrónica
+  final String? firmaAlumnoImagen;
+  final String? firmaAlumnoNombre;
+  final DateTime? firmaAlumnoFecha;
+  final String? firmaTutorEmpresaImagen;
+  final String? firmaTutorEmpresaNombre;
+  final DateTime? firmaTutorEmpresaFecha;
 
   Seguimiento({
     required this.id,
@@ -27,6 +34,12 @@ class Seguimiento {
     this.validadoPorNombre,
     this.comentarioTutor,
     required this.fechaCreacion,
+    this.firmaAlumnoImagen,
+    this.firmaAlumnoNombre,
+    this.firmaAlumnoFecha,
+    this.firmaTutorEmpresaImagen,
+    this.firmaTutorEmpresaNombre,
+    this.firmaTutorEmpresaFecha,
   });
 
   factory Seguimiento.fromJson(Map<String, dynamic> json) {
@@ -42,11 +55,19 @@ class Seguimiento {
       validadoPorNombre: json['validadoPorNombre'],
       comentarioTutor: json['comentarioTutor'],
       fechaCreacion: DateTime.parse(json['fechaCreacion']),
+      firmaAlumnoImagen: json['firmaAlumnoImagen'],
+      firmaAlumnoNombre: json['firmaAlumnoNombre'],
+      firmaAlumnoFecha: json['firmaAlumnoFecha'] != null
+          ? DateTime.parse(json['firmaAlumnoFecha']) : null,
+      firmaTutorEmpresaImagen: json['firmaTutorEmpresaImagen'],
+      firmaTutorEmpresaNombre: json['firmaTutorEmpresaNombre'],
+      firmaTutorEmpresaFecha: json['firmaTutorEmpresaFecha'] != null
+          ? DateTime.parse(json['firmaTutorEmpresaFecha']) : null,
     );
   }
 
   bool get esSemanal => tipo == 'SEMANAL';
-
-  /// Devuelve true si las horas de este parte cuentan para el progreso.
   bool get cuentaParaProgreso => estado == 'COMPLETADO';
+  bool get firmadoPorAlumno => firmaAlumnoImagen != null;
+  bool get firmadoPorTutorEmpresa => firmaTutorEmpresaImagen != null;
 }

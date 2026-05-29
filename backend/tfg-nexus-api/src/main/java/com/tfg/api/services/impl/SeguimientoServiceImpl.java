@@ -2,6 +2,7 @@ package com.tfg.api.services.impl;
 
 import com.tfg.api.exceptions.BusinessRuleException;
 import com.tfg.api.exceptions.ResourceNotFoundException;
+import com.tfg.api.models.dto.FirmarRequest;
 import com.tfg.api.models.dto.SeguimientoRequest;
 import com.tfg.api.models.dto.SeguimientoResponse;
 import com.tfg.api.models.entity.Incidencia;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -182,6 +184,38 @@ public class SeguimientoServiceImpl implements SeguimientoService {
     public SeguimientoResponse validarCentro(Long id) {
         throw new BusinessRuleException(
                 "La validación del tutor de centro no es requerida: el parte queda completado con la validación del tutor de empresa.");
+    }
+
+    @Override
+    @Transactional
+    public SeguimientoResponse firmar(Long id, FirmarRequest request) {
+        Seguimiento seguimiento = seguimientoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Seguimiento no encontrado"));
+
+        String email = currentUserEmail();
+
+        if ("ALUMNO".equals(request.rol())) {
+            if (!seguimiento.getPractica().getAlumno().getEmail().equals(email)) {
+                throw new AccessDeniedException("Solo el alumno puede firmar con rol ALUMNO");
+            }
+            seguimiento.setFirmaAlumnoImagen(request.imagenBase64());
+            seguimiento.setFirmaAlumnoNombre(seguimiento.getPractica().getAlumno().getNombre()
+                    + " " + seguimiento.getPractica().getAlumno().getApellidos());
+            seguimiento.setFirmaAlumnoFecha(LocalDateTime.now());
+        } else {
+            if (!seguimiento.getPractica().getTutorEmpresa().getEmail().equals(email)) {
+                throw new AccessDeniedException("Solo el tutor de empresa puede firmar con rol TUTOR_EMPRESA");
+            }
+            seguimiento.setFirmaTutorEmpresaImagen(request.imagenBase64());
+            seguimiento.setFirmaTutorEmpresaNombre(seguimiento.getPractica().getTutorEmpresa().getNombre()
+                    + " " + seguimiento.getPractica().getTutorEmpresa().getApellidos());
+            seguimiento.setFirmaTutorEmpresaFecha(LocalDateTime.now());
+        }
+
+        log.info("SEGUIMIENTO_FIRMADO id={} rol={} email={}", id, request.rol(), email);
+        auditService.registrar("SEGUIMIENTOS", "FIRMAR_" + request.rol(), id,
+                "Firma " + request.rol() + " registrada", email);
+        return seguimientoMapper.toResponse(seguimientoRepository.save(seguimiento));
     }
 
     @Override

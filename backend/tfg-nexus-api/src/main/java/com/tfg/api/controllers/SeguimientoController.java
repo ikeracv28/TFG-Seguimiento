@@ -1,5 +1,6 @@
 package com.tfg.api.controllers;
 
+import com.tfg.api.models.dto.FirmarRequest;
 import com.tfg.api.models.dto.SeguimientoRequest;
 import com.tfg.api.models.dto.SeguimientoResponse;
 import com.tfg.api.models.entity.EstadoValidacionEmpresa;
@@ -53,6 +54,14 @@ public class SeguimientoController {
     @PreAuthorize("hasRole('TUTOR_CENTRO')")
     public ResponseEntity<SeguimientoResponse> validarCentro(@PathVariable Long id) {
         return ResponseEntity.ok(seguimientoService.validarCentro(id));
+    }
+
+    @PostMapping("/{id}/firmar")
+    @PreAuthorize("hasAnyRole('ALUMNO', 'TUTOR_EMPRESA')")
+    public ResponseEntity<SeguimientoResponse> firmar(
+            @PathVariable Long id,
+            @Valid @RequestBody FirmarRequest request) {
+        return ResponseEntity.ok(seguimientoService.firmar(id, request));
     }
 
     @DeleteMapping("/{id}")

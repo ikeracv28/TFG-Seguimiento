@@ -24,6 +24,12 @@ public interface SeguimientoMapper {
     @Mapping(target = "validadoPor", ignore = true)
     @Mapping(target = "comentarioTutor", ignore = true)
     @Mapping(target = "fechaCreacion", ignore = true)
+    @Mapping(target = "firmaAlumnoImagen", ignore = true)
+    @Mapping(target = "firmaAlumnoNombre", ignore = true)
+    @Mapping(target = "firmaAlumnoFecha", ignore = true)
+    @Mapping(target = "firmaTutorEmpresaImagen", ignore = true)
+    @Mapping(target = "firmaTutorEmpresaNombre", ignore = true)
+    @Mapping(target = "firmaTutorEmpresaFecha", ignore = true)
     Seguimiento toEntity(SeguimientoRequest request);
 
     /**

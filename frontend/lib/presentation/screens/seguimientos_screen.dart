@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/seguimiento_model.dart';
 import '../../data/services/seguimiento_service.dart';
 import '../providers/practica_provider.dart';
+import '../widgets/firma_dialog.dart';
 import '../widgets/pagination_bar.dart';
 
 class SeguimientosScreen extends StatefulWidget {
@@ -558,9 +559,36 @@ class _TH extends StatelessWidget {
   }
 }
 
-class _SeguimientoRow extends StatelessWidget {
+class _SeguimientoRow extends StatefulWidget {
   final Seguimiento s;
   const _SeguimientoRow(this.s);
+  @override
+  State<_SeguimientoRow> createState() => _SeguimientoRowState();
+}
+
+class _SeguimientoRowState extends State<_SeguimientoRow> {
+  late Seguimiento _s;
+
+  @override
+  void initState() {
+    super.initState();
+    _s = widget.s;
+  }
+
+  void _abrirFirma(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => FirmaDialog(
+        seguimientoId: _s.id,
+        rol: 'ALUMNO',
+        onFirmado: (actualizado) async {
+          if (mounted) setState(() => _s = actualizado);
+          context.read<PracticaProvider>().cargarDashboard();
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -569,22 +597,70 @@ class _SeguimientoRow extends StatelessWidget {
         border: Border(bottom: BorderSide(color: context.nxt.border, width: NexusSizes.borderWidth)),
       ),
       padding: const EdgeInsets.symmetric(
-          horizontal: NexusSizes.space2XL, vertical: 14),
-      child: Row(
+          horizontal: NexusSizes.space2XL, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 2, child: Text(fmtSeguimientoFecha(s), style: NexusText.small)),
-          Expanded(flex: 1, child: Text(s.esSemanal ? '${_fmtH(s.horasRealizadas)}/sem' : _fmtH(s.horasRealizadas), style: NexusText.small)),
-          Expanded(
-            flex: 5,
-            child: Text(
-              s.descripcion?.isNotEmpty == true
-                  ? s.descripcion!
-                  : '${_fmtH(s.horasRealizadas)} de trabajo',
-              style: NexusText.small,
-              overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Expanded(flex: 2, child: Text(fmtSeguimientoFecha(_s), style: NexusText.small)),
+              Expanded(flex: 1, child: Text(_s.esSemanal ? '${_fmtH(_s.horasRealizadas)}/sem' : _fmtH(_s.horasRealizadas), style: NexusText.small)),
+              Expanded(
+                flex: 5,
+                child: Text(
+                  _s.descripcion?.isNotEmpty == true
+                      ? _s.descripcion!
+                      : '${_fmtH(_s.horasRealizadas)} de trabajo',
+                  style: NexusText.small,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Expanded(flex: 2, child: _EstadoBadge(_s.estado)),
+            ],
+          ),
+          // ── Indicador de firma ──
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                _FirmaIndicador(
+                  firmado: _s.firmadoPorAlumno,
+                  nombre: _s.firmaAlumnoNombre,
+                  fecha: _s.firmaAlumnoFecha,
+                  label: 'Alumno',
+                ),
+                const SizedBox(width: 10),
+                _FirmaIndicador(
+                  firmado: _s.firmadoPorTutorEmpresa,
+                  nombre: _s.firmaTutorEmpresaNombre,
+                  fecha: _s.firmaTutorEmpresaFecha,
+                  label: 'Tutor empresa',
+                ),
+                const Spacer(),
+                if (!_s.firmadoPorAlumno)
+                  GestureDetector(
+                    onTap: () => _abrirFirma(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: NexusColors.primaryLight,
+                        borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.draw_outlined, size: 13, color: NexusColors.primaryText),
+                          SizedBox(width: 4),
+                          Text('Firmar', style: TextStyle(fontSize: 12,
+                              fontWeight: FontWeight.w600, color: NexusColors.primaryText,
+                              fontFamily: 'Inter')),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          Expanded(flex: 2, child: _EstadoBadge(s.estado)),
         ],
       ),
     );
@@ -597,6 +673,45 @@ class _SeguimientoRow extends StatelessWidget {
     if (mm == 0) return '${hh}h';
     if (hh == 0) return '${mm}min';
     return '${hh}h ${mm}min';
+  }
+}
+
+class _FirmaIndicador extends StatelessWidget {
+  final bool firmado;
+  final String? nombre;
+  final DateTime? fecha;
+  final String label;
+
+  const _FirmaIndicador({
+    required this.firmado, required this.nombre,
+    required this.fecha, required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (firmado) {
+      final fechaStr = fecha != null
+          ? '${fecha!.day.toString().padLeft(2,'0')}/${fecha!.month.toString().padLeft(2,'0')}'
+          : '';
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle_rounded, size: 13, color: NexusColors.success),
+          const SizedBox(width: 4),
+          Text('$label · $fechaStr',
+              style: NexusText.caption.copyWith(color: NexusColors.successText)),
+        ],
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.radio_button_unchecked, size: 13, color: context.nxt.inkTertiary),
+        const SizedBox(width: 4),
+        Text('$label: pendiente',
+            style: NexusText.caption.copyWith(color: context.nxt.inkTertiary)),
+      ],
+    );
   }
 }
 

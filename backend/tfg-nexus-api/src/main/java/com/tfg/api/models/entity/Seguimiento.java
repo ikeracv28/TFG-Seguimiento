@@ -78,6 +78,24 @@ public class Seguimiento {
     @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion;
 
+    @Column(name = "firma_alumno_imagen", columnDefinition = "TEXT")
+    private String firmaAlumnoImagen;
+
+    @Column(name = "firma_alumno_nombre", length = 200)
+    private String firmaAlumnoNombre;
+
+    @Column(name = "firma_alumno_fecha")
+    private LocalDateTime firmaAlumnoFecha;
+
+    @Column(name = "firma_tutor_empresa_imagen", columnDefinition = "TEXT")
+    private String firmaTutorEmpresaImagen;
+
+    @Column(name = "firma_tutor_empresa_nombre", length = 200)
+    private String firmaTutorEmpresaNombre;
+
+    @Column(name = "firma_tutor_empresa_fecha")
+    private LocalDateTime firmaTutorEmpresaFecha;
+
     @PrePersist
     protected void onCreate() {
         this.fechaCreacion = LocalDateTime.now();

@@ -12,6 +12,7 @@ import '../../data/models/seguimiento_model.dart';
 import '../../data/services/ausencia_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/tutor_empresa_provider.dart';
+import '../widgets/firma_dialog.dart';
 import 'chat_placeholder_screen.dart';
 import 'perfil_screen.dart';
 import 'notificaciones_screen.dart';
@@ -397,33 +398,26 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
   }
 
   Future<void> _confirmarValidar(int id) async {
-    final confirmar = await showDialog<bool>(
+    if (!mounted) return;
+    showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Validar parte'),
-        content: const Text(
-            '¿Confirmas que las horas y actividades descritas son correctas?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: NexusColors.success),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Validar y firmar'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (_) => FirmaDialog(
+        seguimientoId: id,
+        rol: 'TUTOR_EMPRESA',
+        onFirmado: (actualizado) async {
+          // Una vez firmado, validar el parte
+          if (!mounted) return;
+          final ok = await context.read<TutorEmpresaProvider>().validar(id);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(ok ? 'Parte validado y firmado correctamente' : 'Firma guardada — error al validar'),
+              backgroundColor: ok ? NexusColors.success : NexusColors.warning,
+            ));
+          }
+        },
       ),
     );
-    if (confirmar != true || !mounted) return;
-
-    final ok = await context.read<TutorEmpresaProvider>().validar(id);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Parte validado correctamente' : 'Error al validar el parte'),
-        backgroundColor: ok ? NexusColors.success : NexusColors.danger,
-      ));
-    }
   }
 
   Future<void> _verJustificante(int ausenciaId) async {

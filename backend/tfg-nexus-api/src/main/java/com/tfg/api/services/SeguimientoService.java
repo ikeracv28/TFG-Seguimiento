@@ -1,5 +1,6 @@
 package com.tfg.api.services;
 
+import com.tfg.api.models.dto.FirmarRequest;
 import com.tfg.api.models.dto.SeguimientoRequest;
 import com.tfg.api.models.dto.SeguimientoResponse;
 import java.util.List;
@@ -24,6 +25,8 @@ public interface SeguimientoService {
      * Solo actúa sobre partes en estado PENDIENTE_CENTRO.
      */
     SeguimientoResponse validarCentro(Long id);
+
+    SeguimientoResponse firmar(Long id, FirmarRequest request);
 
     void eliminar(Long id);
 }
