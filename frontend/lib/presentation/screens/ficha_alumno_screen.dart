@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:provider/provider.dart';
 // ignore: avoid_web_libraries_in_flutter
+import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:typed_data';
 import '../../core/theme/app_theme.dart';
@@ -657,21 +658,54 @@ class _FichaAlumnoScreenState extends State<FichaAlumnoScreen> {
             ]),
             pw.SizedBox(height: 12),
 
-            // ── Firma ─────────────────────────────────────────────────────
+            // ── Firmas electrónicas ───────────────────────────────────────
             pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
+                // Columna alumno
                 pw.Expanded(
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
+                      pw.Text('Firma del alumno/a',
+                          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 4),
+                      if (seg.firmaAlumnoImagen != null)
+                        _pdfFirmaImagen(seg.firmaAlumnoImagen!)
+                      else
+                        pw.Container(height: 48, decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.grey400, width: 0.5))),
+                      pw.SizedBox(height: 4),
                       pw.Text(
-                        'El/la tutor/a de la empresa u organismo equiparado (Firma digital preferentemente)',
-                        style: pw.TextStyle(fontSize: 8, fontStyle: pw.FontStyle.italic),
+                        seg.firmaAlumnoNombre != null
+                            ? '${seg.firmaAlumnoNombre}  ${seg.firmaAlumnoFecha != null ? fmtDate.format(seg.firmaAlumnoFecha!) : ''}'
+                            : 'Pendiente de firma',
+                        style: pw.TextStyle(fontSize: 7, color: seg.firmaAlumnoNombre != null ? PdfColors.black : PdfColors.grey600),
                       ),
-                      pw.SizedBox(height: 24),
-                      pw.Text('Fecha: ${fmtDate.format(fechaFin)}',
-                          style: const pw.TextStyle(fontSize: 9)),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(width: 16),
+                // Columna tutor empresa
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Firma del/a tutor/a de empresa',
+                          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 4),
+                      if (seg.firmaTutorEmpresaImagen != null)
+                        _pdfFirmaImagen(seg.firmaTutorEmpresaImagen!)
+                      else
+                        pw.Container(height: 48, decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.grey400, width: 0.5))),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        seg.firmaTutorEmpresaNombre != null
+                            ? '${seg.firmaTutorEmpresaNombre}  ${seg.firmaTutorEmpresaFecha != null ? fmtDate.format(seg.firmaTutorEmpresaFecha!) : ''}'
+                            : 'Pendiente de firma',
+                        style: pw.TextStyle(fontSize: 7, color: seg.firmaTutorEmpresaNombre != null ? PdfColors.black : PdfColors.grey600),
+                      ),
                     ],
                   ),
                 ),
@@ -709,6 +743,17 @@ class _FichaAlumnoScreenState extends State<FichaAlumnoScreen> {
       case 'PENDIENTE_EMPRESA': return 'En proceso';
       case 'RECHAZADO': return 'No superado';
       default: return 'En proceso';
+    }
+  }
+
+  pw.Widget _pdfFirmaImagen(String dataUrl) {
+    try {
+      final base64Str = dataUrl.contains(',') ? dataUrl.split(',')[1] : dataUrl;
+      final bytes = base64Decode(base64Str);
+      return pw.Image(pw.MemoryImage(bytes), height: 48, fit: pw.BoxFit.contain);
+    } catch (_) {
+      return pw.Container(height: 48, decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey400, width: 0.5)));
     }
   }
 

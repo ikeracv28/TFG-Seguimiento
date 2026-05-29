@@ -272,12 +272,26 @@ class _PanelTutorEmpresaScreenState extends State<PanelTutorEmpresaScreen> {
             ...provider.practicas.map((p) {
               final seguimientos = provider.seguimientosDe(p.id);
               final evaluacion = provider.evaluacionDe(p.id);
+              // Partes validados por empresa pero aún sin firma del tutor empresa
+              final sinFirmar = seguimientos
+                  .where((s) =>
+                      (s.estado == 'PENDIENTE_CENTRO' || s.estado == 'COMPLETADO') &&
+                      !s.firmadoPorTutorEmpresa)
+                  .toList();
               return Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ProgresoCard(practica: p, seguimientos: seguimientos),
+                    if (sinFirmar.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _PartesSinFirmarCard(
+                        practica: p,
+                        partesSinFirmar: sinFirmar,
+                        onFirmado: () => context.read<TutorEmpresaProvider>().cargar(),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     _EvaluacionResumenCard(
                       practica: p,
@@ -1872,6 +1886,96 @@ class _CriterioSlider extends StatelessWidget {
                 onChanged: onChanged,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Partes validados sin firma del tutor empresa ───────────────────────────────
+
+class _PartesSinFirmarCard extends StatelessWidget {
+  final Practica practica;
+  final List<Seguimiento> partesSinFirmar;
+  final VoidCallback onFirmado;
+
+  const _PartesSinFirmarCard({
+    required this.practica,
+    required this.partesSinFirmar,
+    required this.onFirmado,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: context.nxt.surface,
+        borderRadius: BorderRadius.circular(NexusSizes.radiusLG),
+        border: Border.all(color: NexusColors.warning.withAlpha(100), width: NexusSizes.borderWidth),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            decoration: BoxDecoration(
+              color: NexusColors.warningLight,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(NexusSizes.radiusLG),
+                topRight: Radius.circular(NexusSizes.radiusLG),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.draw_outlined, size: 14, color: NexusColors.warningText),
+                const SizedBox(width: 8),
+                Text(
+                  'PARTES SIN TU FIRMA — ${partesSinFirmar.length}',
+                  style: NexusText.label.copyWith(color: NexusColors.warningText, letterSpacing: 1.2),
+                ),
+              ],
+            ),
+          ),
+          ...partesSinFirmar.map((s) {
+            final fecha = s.esSemanal
+                ? 'Sem. ${DateFormat('d MMM', 'es_ES').format(s.fechaRegistro)}'
+                : DateFormat('d MMM yyyy', 'es_ES').format(s.fechaRegistro);
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(fecha, style: NexusText.small.copyWith(fontWeight: FontWeight.w500)),
+                        Text(fmtH(s.horasRealizadas),
+                            style: NexusText.caption.copyWith(color: context.nxt.inkSecondary)),
+                      ],
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => FirmaDialog(
+                        seguimientoId: s.id,
+                        rol: 'TUTOR_EMPRESA',
+                        onFirmado: (_) async => onFirmado(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.draw_outlined, size: 14),
+                    label: const Text('Firmar', style: TextStyle(fontSize: 12)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: NexusColors.warning,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
