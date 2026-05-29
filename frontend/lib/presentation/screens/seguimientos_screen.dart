@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/seguimiento_model.dart';
 import '../../data/services/seguimiento_service.dart';
 import '../providers/practica_provider.dart';
+import '../widgets/pagination_bar.dart';
 
 class SeguimientosScreen extends StatefulWidget {
   const SeguimientosScreen({super.key});
@@ -372,7 +373,7 @@ class _KpiCard extends StatelessWidget {
 
 // ─── Tabla historial ───────────────────────────────────────────────────────────
 
-class _HistorialCard extends StatelessWidget {
+class _HistorialCard extends StatefulWidget {
   final List<Seguimiento> seguimientos;
   final String query;
   final TextEditingController searchCtrl;
@@ -386,7 +387,47 @@ class _HistorialCard extends StatelessWidget {
   });
 
   @override
+  State<_HistorialCard> createState() => _HistorialCardState();
+}
+
+class _HistorialCardState extends State<_HistorialCard> {
+  static const _porPagina = 10;
+  int _pagina = 0;
+  String _filtroEstado = 'TODOS';
+
+  static const _estados = ['TODOS', 'PENDIENTE_EMPRESA', 'COMPLETADO', 'RECHAZADO'];
+  static const _etiquetas = {
+    'TODOS': 'Todos',
+    'PENDIENTE_EMPRESA': 'Pendiente empresa',
+    'COMPLETADO': 'Completado',
+    'RECHAZADO': 'Rechazado',
+  };
+  static const _colores = {
+    'TODOS': NexusColors.primary,
+    'PENDIENTE_EMPRESA': NexusColors.warning,
+    'COMPLETADO': NexusColors.success,
+    'RECHAZADO': NexusColors.danger,
+  };
+
+  List<Seguimiento> _aplicarFiltros(List<Seguimiento> lista) {
+    var res = lista;
+    if (_filtroEstado != 'TODOS') {
+      res = res.where((s) => s.estado == _filtroEstado).toList();
+    }
+    return res;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final todos = widget.seguimientos;
+    final filtrados = _aplicarFiltros(todos);
+    final total = filtrados.length;
+    final maxPag = ((total / _porPagina).ceil() - 1).clamp(0, 9999);
+    final paginaReal = _pagina.clamp(0, maxPag);
+    final inicio = paginaReal * _porPagina;
+    final fin = (inicio + _porPagina).clamp(0, total);
+    final pagina = filtrados.sublist(inicio, fin);
+
     return Container(
       decoration: BoxDecoration(
         color: context.nxt.surface,
@@ -396,6 +437,7 @@ class _HistorialCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Cabecera con buscador ──
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 NexusSizes.space2XL, NexusSizes.spaceLG, NexusSizes.spaceLG, NexusSizes.spaceLG),
@@ -407,8 +449,11 @@ class _HistorialCard extends StatelessWidget {
                 SizedBox(
                   width: 220,
                   child: TextField(
-                    controller: searchCtrl,
-                    onChanged: onSearch,
+                    controller: widget.searchCtrl,
+                    onChanged: (v) {
+                      widget.onSearch(v);
+                      setState(() => _pagina = 0);
+                    },
                     style: NexusText.small,
                     decoration: InputDecoration(
                       hintText: 'Buscar partes...',
@@ -434,8 +479,16 @@ class _HistorialCard extends StatelessWidget {
               ],
             ),
           ),
+          // ── Chips de filtro por estado ──
+          EstadoFilterBar(
+            opciones: _estados,
+            seleccionado: _filtroEstado,
+            etiquetas: _etiquetas,
+            colores: _colores,
+            onSeleccionado: (e) => setState(() { _filtroEstado = e; _pagina = 0; }),
+          ),
           Divider(height: 1, thickness: NexusSizes.borderWidth, color: context.nxt.border),
-          // Cabecera tabla
+          // ── Cabecera tabla ──
           Container(
             color: context.nxt.surfaceAlt,
             padding: const EdgeInsets.symmetric(
@@ -450,8 +503,7 @@ class _HistorialCard extends StatelessWidget {
             ),
           ),
           Divider(height: 1, thickness: NexusSizes.borderWidth, color: context.nxt.border),
-
-          if (seguimientos.isEmpty)
+          if (filtrados.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: NexusSizes.space3XL),
               child: Center(
@@ -460,7 +512,7 @@ class _HistorialCard extends StatelessWidget {
                     Icon(Icons.list_alt_outlined, size: 32, color: context.nxt.inkTertiary),
                     const SizedBox(height: NexusSizes.spaceMD),
                     Text(
-                      query.isEmpty ? 'Aún no has registrado ningún parte' : 'Sin resultados',
+                      todos.isEmpty ? 'Aún no has registrado ningún parte' : 'Sin resultados para el filtro seleccionado',
                       style: NexusText.small.copyWith(fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -468,15 +520,14 @@ class _HistorialCard extends StatelessWidget {
               ),
             )
           else
-            for (final s in seguimientos) _SeguimientoRow(s),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                NexusSizes.space2XL, NexusSizes.spaceMD, NexusSizes.space2XL, NexusSizes.spaceMD),
-            child: Text(
-              'Mostrando ${seguimientos.length} registros',
-              style: NexusText.caption,
-            ),
+            for (final s in pagina) _SeguimientoRow(s),
+          // ── Paginación ──
+          PaginationBar(
+            pagina: paginaReal,
+            total: total,
+            porPagina: _porPagina,
+            onAnterior: () => setState(() => _pagina = (paginaReal - 1).clamp(0, maxPag)),
+            onSiguiente: () => setState(() => _pagina = (paginaReal + 1).clamp(0, maxPag)),
           ),
         ],
       ),

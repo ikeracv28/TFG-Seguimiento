@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../widgets/pagination_bar.dart';
 import '../providers/theme_provider.dart';
 import '../../data/models/usuario_model.dart';
 import '../../data/models/practica_model.dart';
@@ -858,6 +859,8 @@ class _VistaPracticas extends StatefulWidget {
 
 class _VistaPracticasState extends State<_VistaPracticas> {
   String _filtro = 'TODAS';
+  int _pagina = 0;
+  static const _porPagina = 10;
 
   static const _filtros = ['TODAS', 'ACTIVA', 'BORRADOR', 'FINALIZADA'];
 
@@ -904,7 +907,7 @@ class _VistaPracticasState extends State<_VistaPracticas> {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: InkWell(
-                    onTap: () => setState(() => _filtro = f),
+                    onTap: () => setState(() { _filtro = f; _pagina = 0; }),
                     borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
@@ -952,7 +955,7 @@ class _VistaPracticasState extends State<_VistaPracticas> {
               }).toList(),
             ),
           ),
-          // Lista
+          // Lista paginada
           Expanded(
             child: admin.cargando
                 ? const Center(child: CircularProgressIndicator())
@@ -960,17 +963,37 @@ class _VistaPracticasState extends State<_VistaPracticas> {
                     ? Center(
                         child: Text(
                           'No hay prácticas con estado $_filtro.',
-                          style: TextStyle(
-                              color: context.nxt.inkSecondary),
+                          style: TextStyle(color: context.nxt.inkSecondary),
                         ),
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(NexusSizes.space2XL),
-                        itemCount: lista.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: NexusSizes.spaceSM),
-                        itemBuilder: (_, i) =>
-                            _PracticaCard(practica: lista[i]),
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: ListView.separated(
+                              padding: const EdgeInsets.all(NexusSizes.space2XL),
+                              itemCount: () {
+                                final p = _pagina.clamp(0, ((lista.length / _porPagina).ceil() - 1).clamp(0, 9999));
+                                final fin = ((p + 1) * _porPagina).clamp(0, lista.length);
+                                final ini = (p * _porPagina).clamp(0, fin);
+                                return fin - ini;
+                              }(),
+                              separatorBuilder: (_, _) => const SizedBox(height: NexusSizes.spaceSM),
+                              itemBuilder: (_, i) {
+                                final maxPag = ((lista.length / _porPagina).ceil() - 1).clamp(0, 9999);
+                                final p = _pagina.clamp(0, maxPag);
+                                final ini = p * _porPagina;
+                                return _PracticaCard(practica: lista[ini + i]);
+                              },
+                            ),
+                          ),
+                          PaginationBar(
+                            pagina: _pagina.clamp(0, ((lista.length / _porPagina).ceil() - 1).clamp(0, 9999)),
+                            total: lista.length,
+                            porPagina: _porPagina,
+                            onAnterior: () => setState(() => _pagina = (_pagina - 1).clamp(0, 9999)),
+                            onSiguiente: () => setState(() => _pagina = (_pagina + 1)),
+                          ),
+                        ],
                       ),
           ),
         ],
