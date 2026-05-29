@@ -132,3 +132,19 @@ flutter_build.log
 screen.png
 screen*.png
 fotos/
+
+# Documentos de defensa (no van al repo)
+ACTUALIZACIONES-MEMORIA-DEFENSA.md
+ACTUALIZACIONES-MEMORIA*.md
+MEMORIA TFG*.md
+MEMORIA*.md
+*.pptx
+*.docx
+*.doc
+*.md.bak
+WhatsApp*.jpeg
+WhatsApp*.jpg
+WhatsApp*.png
+image.png
+imagenn.png
+*.csv
