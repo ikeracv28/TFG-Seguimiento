@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/config/api_client.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/models/auth_models.dart';
 
@@ -27,6 +28,13 @@ class AuthProvider extends ChangeNotifier {
   Future<void> init() async {
     _isLoading = true;
     notifyListeners();
+
+    // Cuando cualquier petición recibe 401 (token expirado), hacer logout automático
+    ApiClient.onSessionExpired = () async {
+      _user = null;
+      _sessionChecked = true;
+      notifyListeners();
+    };
 
     _user = await _authService.recuperarSesion();
     _isLoading = false;

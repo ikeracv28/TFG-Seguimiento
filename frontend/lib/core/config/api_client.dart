@@ -8,6 +8,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiClient {
   static const String _baseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:8080/api/v1');
 
+  /// Se asigna desde main.dart para redirigir al login cuando el token caduca (401).
+  static Future<void> Function()? onSessionExpired;
+
   // Deriva la URL WebSocket del mismo env var: http→ws, https→wss, elimina /api/v1
   static String get wsBaseUrl {
     final uri = Uri.parse(_baseUrl);
@@ -47,7 +50,11 @@ class ApiClient {
         }
         return handler.next(options);
       },
-      onError: (DioException e, handler) {
+      onError: (DioException e, handler) async {
+        if (e.response?.statusCode == 401) {
+          try { await _storage.deleteAll(); } catch (_) {}
+          await onSessionExpired?.call();
+        }
         return handler.next(e);
       },
     ));
