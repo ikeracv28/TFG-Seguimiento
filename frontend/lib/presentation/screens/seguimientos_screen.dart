@@ -149,9 +149,12 @@ class _KpiRow extends StatelessWidget {
   });
 
   static String _fmtHDisplay(num h) {
-    final d = h.toDouble();
-    if (d == d.truncateToDouble()) return '${d.toInt()}h';
-    return '${d.truncate()}h 30min';
+    final totalMin = (h.toDouble() * 60).round();
+    final hh = totalMin ~/ 60;
+    final mm = totalMin % 60;
+    if (mm == 0) return '${hh}h';
+    if (hh == 0) return '${mm}min';
+    return '${hh}h ${mm}min';
   }
 
   @override
@@ -537,9 +540,12 @@ class _SeguimientoRow extends StatelessWidget {
   }
 
   static String _fmtH(double h) {
-    if (h == h.truncateToDouble()) return '${h.toInt()}h';
-    final e = h.truncate();
-    return e == 0 ? '30min' : '${e}h 30min';
+    final totalMin = (h * 60).round();
+    final hh = totalMin ~/ 60;
+    final mm = totalMin % 60;
+    if (mm == 0) return '${hh}h';
+    if (hh == 0) return '${mm}min';
+    return '${hh}h ${mm}min';
   }
 }
 
@@ -609,9 +615,11 @@ class NuevoParteDialog extends StatefulWidget {
 class _NuevoParteDialogState extends State<NuevoParteDialog> {
   String _tipo = 'DIARIO'; // 'DIARIO' o 'SEMANAL'
   DateTime _fecha = DateTime.now();
-  double _horas = 8.0;
+  int _horas = 8;
+  int _minutos = 0;
   // SEMANAL: entrada desglosada
-  double _horasDia = 8.0;
+  int _horasDia = 8;
+  int _minutosDia = 0;
   int _diasSemana = 5;
   final _descripcionCtrl = TextEditingController();
   bool _enviando = false;
@@ -660,10 +668,13 @@ class _NuevoParteDialogState extends State<NuevoParteDialog> {
       final provider = context.read<PracticaProvider>();
       final practica = provider.practicaActiva;
       if (practica == null) throw Exception('No tienes una práctica activa.');
+      final horasDecimal = _tipo == 'SEMANAL'
+          ? (_horasDia + _minutosDia / 60.0) * _diasSemana
+          : _horas + _minutos / 60.0;
       final nuevo = await SeguimientoService().registrar(
         practicaId: practica.id,
         fechaRegistro: _fecha,
-        horasRealizadas: _tipo == 'SEMANAL' ? _horasDia * _diasSemana : _horas,
+        horasRealizadas: horasDecimal,
         descripcion: desc,
         tipo: _tipo,
       );
@@ -687,10 +698,10 @@ class _NuevoParteDialogState extends State<NuevoParteDialog> {
     return '${lunes.day} ${m[lunes.month]}–${viernes.day} ${m[viernes.month]} ${viernes.year}';
   }
 
-  static String _fmtHoras(double h) {
-    if (h == h.truncateToDouble()) return '${h.toInt()}h';
-    final enteras = h.truncate();
-    return enteras == 0 ? '30min' : '${enteras}h 30min';
+  static String _fmtHoras(int hh, int mm) {
+    if (mm == 0) return '${hh}h';
+    if (hh == 0) return '${mm}min';
+    return '${hh}h ${mm}min';
   }
 
   static String _fmtFecha(DateTime d) {
@@ -781,7 +792,6 @@ class _NuevoParteDialogState extends State<NuevoParteDialog> {
                             active: _tipo == 'DIARIO',
                             onTap: () => setState(() {
                               _tipo = 'DIARIO';
-                              _horas = _horas.clamp(0.5, 24.0);
                             }),
                           ),
                           const SizedBox(width: 8),
@@ -792,7 +802,6 @@ class _NuevoParteDialogState extends State<NuevoParteDialog> {
                             onTap: () => setState(() {
                               _tipo = 'SEMANAL';
                               _fecha = _fecha.subtract(Duration(days: _fecha.weekday - 1));
-                              if (_horas < 1) _horas = 8.0;
                             }),
                           ),
                         ],
@@ -830,42 +839,18 @@ class _NuevoParteDialogState extends State<NuevoParteDialog> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            // Horas por día
+                            // Horas por día (HH + MM)
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('Horas / día', style: TextStyle(fontFamily: 'Inter', fontSize: 12,
                                   fontWeight: FontWeight.w500, color: context.nxt.inkSecondary)),
                                 const SizedBox(height: 8),
-                                Container(
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: context.nxt.surfaceAlt,
-                                    border: Border.all(color: context.nxt.border),
-                                    borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _StepBtn(
-                                        icon: Icons.remove,
-                                        enabled: _horasDia > 0.5,
-                                        onTap: _horasDia > 0.5 ? () => setState(() => _horasDia = (_horasDia - 0.5).clamp(0.5, 12.0)) : null,
-                                      ),
-                                      SizedBox(
-                                        width: 50,
-                                        child: Text(_fmtHoras(_horasDia),
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(fontFamily: 'Inter', fontSize: 14,
-                                            fontWeight: FontWeight.w600, color: context.nxt.ink)),
-                                      ),
-                                      _StepBtn(
-                                        icon: Icons.add,
-                                        enabled: _horasDia < 12.0,
-                                        onTap: _horasDia < 12.0 ? () => setState(() => _horasDia = (_horasDia + 0.5).clamp(0.5, 12.0)) : null,
-                                      ),
-                                    ],
-                                  ),
+                                _HhMmPicker(
+                                  horas: _horasDia,
+                                  minutos: _minutosDia,
+                                  maxHoras: 12,
+                                  onChanged: (hh, mm) => setState(() { _horasDia = hh; _minutosDia = mm; }),
                                 ),
                               ],
                             ),
@@ -925,7 +910,10 @@ class _NuevoParteDialogState extends State<NuevoParteDialog> {
                                     borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
                                   ),
                                   alignment: Alignment.center,
-                                  child: Text(_fmtHoras(_horasDia * _diasSemana),
+                                  child: Text(() {
+                                      final totalMin = (_horasDia * 60 + _minutosDia) * _diasSemana;
+                                      return _fmtHoras(totalMin ~/ 60, totalMin % 60);
+                                    }(),
                                     style: const TextStyle(fontFamily: 'Inter', fontSize: 15,
                                       fontWeight: FontWeight.w700, color: NexusColors.primaryText)),
                                 ),
@@ -975,35 +963,11 @@ class _NuevoParteDialogState extends State<NuevoParteDialog> {
                                 Text('Horas', style: TextStyle(fontFamily: 'Inter', fontSize: 12,
                                   fontWeight: FontWeight.w500, color: context.nxt.inkSecondary)),
                                 const SizedBox(height: 8),
-                                Container(
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: context.nxt.surfaceAlt,
-                                    border: Border.all(color: context.nxt.border),
-                                    borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _StepBtn(
-                                        icon: Icons.remove,
-                                        enabled: _horas > 0.5,
-                                        onTap: _horas > 0.5 ? () => setState(() => _horas = (_horas - 0.5).clamp(0.5, 24.0)) : null,
-                                      ),
-                                      SizedBox(
-                                        width: 54,
-                                        child: Text(_fmtHoras(_horas),
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(fontFamily: 'Inter', fontSize: 14,
-                                            fontWeight: FontWeight.w600, color: context.nxt.ink)),
-                                      ),
-                                      _StepBtn(
-                                        icon: Icons.add,
-                                        enabled: _horas < 24.0,
-                                        onTap: _horas < 24.0 ? () => setState(() => _horas = (_horas + 0.5).clamp(0.5, 24.0)) : null,
-                                      ),
-                                    ],
-                                  ),
+                                _HhMmPicker(
+                                  horas: _horas,
+                                  minutos: _minutos,
+                                  maxHoras: 24,
+                                  onChanged: (hh, mm) => setState(() { _horas = hh; _minutos = mm; }),
                                 ),
                               ],
                             ),
@@ -1155,6 +1119,99 @@ class _StepBtn extends StatelessWidget {
         ),
         child: Icon(icon, size: 18,
           color: enabled ? NexusColors.primary : context.nxt.border),
+      ),
+    );
+  }
+}
+
+// ─── Picker HH:MM ────────────────────────────────────────────────────────────
+
+class _HhMmPicker extends StatelessWidget {
+  final int horas;
+  final int minutos;
+  final int maxHoras;
+  final void Function(int hh, int mm) onChanged;
+
+  const _HhMmPicker({
+    required this.horas,
+    required this.minutos,
+    required this.maxHoras,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 42,
+      decoration: BoxDecoration(
+        color: context.nxt.surfaceAlt,
+        border: Border.all(color: context.nxt.border),
+        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ─ Horas ─
+          _StepBtn(
+            icon: Icons.remove,
+            enabled: horas > 0 || minutos > 0,
+            onTap: (horas > 0 || minutos > 0)
+                ? () {
+                    if (horas > 0) {
+                      onChanged(horas - 1, minutos);
+                    }
+                  }
+                : null,
+          ),
+          SizedBox(
+            width: 28,
+            child: Text('${horas}h',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: 'Inter', fontSize: 14,
+                fontWeight: FontWeight.w600, color: context.nxt.ink)),
+          ),
+          _StepBtn(
+            icon: Icons.add,
+            enabled: horas < maxHoras,
+            onTap: horas < maxHoras ? () => onChanged(horas + 1, minutos) : null,
+          ),
+          Container(width: 1, height: 24, color: context.nxt.border),
+          // ─ Minutos ─
+          _StepBtn(
+            icon: Icons.remove,
+            enabled: minutos > 0 || horas > 0,
+            onTap: (minutos > 0 || horas > 0)
+                ? () {
+                    if (minutos == 0) {
+                      onChanged(horas - 1, 55);
+                    } else {
+                      onChanged(horas, ((minutos - 5) ~/ 5) * 5);
+                    }
+                  }
+                : null,
+          ),
+          SizedBox(
+            width: 36,
+            child: Text('${minutos.toString().padLeft(2, '0')}min',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: 'Inter', fontSize: 14,
+                fontWeight: FontWeight.w600, color: context.nxt.ink)),
+          ),
+          _StepBtn(
+            icon: Icons.add,
+            enabled: !(horas == maxHoras && minutos >= 55),
+            onTap: !(horas == maxHoras && minutos >= 55)
+                ? () {
+                    final nextMin = minutos + 5;
+                    if (nextMin >= 60) {
+                      onChanged(horas + 1, 0);
+                    } else {
+                      onChanged(horas, nextMin);
+                    }
+                  }
+                : null,
+          ),
+        ],
       ),
     );
   }

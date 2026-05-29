@@ -66,10 +66,13 @@ public class SeguimientoServiceImpl implements SeguimientoService {
 
         // Validación de horas según tipo
         if ("DIARIO".equals(tipo) && request.horasRealizadas() > 24.0) {
-            throw new BusinessRuleException("Para registro diario el máximo son 24 horas");
+            throw new BusinessRuleException("Para registro diario el máximo son 24 horas (1440 minutos)");
         }
         if ("SEMANAL".equals(tipo) && request.horasRealizadas() > 50.0) {
             throw new BusinessRuleException("Para registro semanal el máximo son 50 horas");
+        }
+        if (request.horasRealizadas() < 0.017) {
+            throw new BusinessRuleException("Debe registrar al menos 1 minuto de trabajo");
         }
 
         // A04: no permitir duplicados en el mismo periodo

@@ -424,12 +424,15 @@ Widget nexusCard({required Widget child, EdgeInsets? padding, BuildContext? cont
   );
 }
 
-// ── Formateo de horas con soporte de medias horas ─────────────────────────────
-// Ej: 7.0 → "7h" | 7.5 → "7h 30min" | 0.5 → "30min"
+// ── Formateo de horas con soporte de minutos exactos ──────────────────────────
+// Ej: 7.0 → "7h" | 7.5 → "7h 30min" | 7.217 → "7h 13min" | 0.25 → "15min"
 String fmtH(num h) {
-  if (h == h.truncate()) return '${h.toInt()}h';
-  final enteras = h.truncate();
-  return enteras == 0 ? '30min' : '${enteras}h 30min';
+  final totalMin = (h.toDouble() * 60).round();
+  final hh = totalMin ~/ 60;
+  final mm = totalMin % 60;
+  if (mm == 0) return '${hh}h';
+  if (hh == 0) return '${mm}min';
+  return '${hh}h ${mm}min';
 }
 
 // ── Formateo de fecha de seguimiento según tipo ────────────────────────────────

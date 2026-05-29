@@ -12,7 +12,7 @@ public record SeguimientoRequest(
     LocalDate fechaRegistro,
 
     @NotNull(message = "Las horas realizadas son obligatorias")
-    @DecimalMin(value = "0.5", message = "Debe registrar al menos 0.5 horas")
+    @DecimalMin(value = "0.017", message = "Debe registrar al menos 1 minuto")
     @DecimalMax(value = "50.0", message = "No se pueden registrar más de 50 horas")
     Double horasRealizadas,
 

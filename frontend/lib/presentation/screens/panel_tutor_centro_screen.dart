@@ -1438,7 +1438,7 @@ class _AllPartesPanel extends StatelessWidget {
                                   Icon(Icons.access_time, size: 13, color: context.nxt.inkTertiary),
                                   const SizedBox(width: 5),
                                   Flexible(
-                                    child: Text('${fmtH(ultimo.horasRealizadas)}h',
+                                    child: Text(fmtH(ultimo.horasRealizadas),
                                         style: NexusText.caption, overflow: TextOverflow.ellipsis),
                                   ),
                                   if (ultimoPractica != null) ...[

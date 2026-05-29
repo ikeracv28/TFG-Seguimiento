@@ -713,8 +713,12 @@ class _FichaAlumnoScreenState extends State<FichaAlumnoScreen> {
   }
 
   String _fmtHoras(double h) {
-    if (h == h.truncate()) return '${h.truncate()}h';
-    return '${h.toStringAsFixed(1)}h';
+    final totalMin = (h * 60).round();
+    final hh = totalMin ~/ 60;
+    final mm = totalMin % 60;
+    if (mm == 0) return '${hh}h';
+    if (hh == 0) return '${mm}min';
+    return '${hh}h ${mm}min';
   }
 
   pw.Widget _anexoHeaderTable(String curso, String convenio, String anexo) {

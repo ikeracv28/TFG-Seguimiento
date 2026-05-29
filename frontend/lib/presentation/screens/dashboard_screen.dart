@@ -753,8 +753,12 @@ class _StatsRow extends StatelessWidget {
   }
 
   static String _fmtH(double h) {
-    if (h == h.truncateToDouble()) return '${h.toInt()}h';
-    return '${h.truncate()}h 30min';
+    final totalMin = (h * 60).round();
+    final hh = totalMin ~/ 60;
+    final mm = totalMin % 60;
+    if (mm == 0) return '${hh}h';
+    if (hh == 0) return '${mm}min';
+    return '${hh}h ${mm}min';
   }
 
   static String _estadoLabel(String e) => switch (e) {
