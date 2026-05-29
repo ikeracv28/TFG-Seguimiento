@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -2025,6 +2027,79 @@ class _DialogBatchUsuariosState extends State<_DialogBatchUsuarios> {
     return '${hash.toString().padLeft(8, '0')}B';
   }
 
+  void _importarCsv() {
+    final input = html.FileUploadInputElement()..accept = '.csv,text/csv,text/plain';
+    input.click();
+    input.onChange.listen((_) {
+      final file = input.files?.first;
+      if (file == null) return;
+      final reader = html.FileReader();
+      reader.readAsText(file);
+      reader.onLoad.listen((_) {
+        final content = reader.result as String;
+        _parsearCsv(content);
+      });
+    });
+  }
+
+  void _parsearCsv(String contenido) {
+    final lineas = contenido.split(RegExp(r'\r?\n')).where((l) => l.trim().isNotEmpty).toList();
+    if (lineas.isEmpty) return;
+
+    // Detectar si hay cabecera (primera línea con "nombre" o "email")
+    final primeraLinea = lineas.first.toLowerCase();
+    final tieneHeader = primeraLinea.contains('nombre') || primeraLinea.contains('email');
+    final datos = tieneHeader ? lineas.skip(1) : lineas;
+
+    final nuevasFila = <_FilaUsuario>[];
+    for (final linea in datos) {
+      final cols = linea.split(',').map((c) => c.trim().replaceAll('"', '')).toList();
+      if (cols.length < 3) continue;
+      final fila = _FilaUsuario();
+      fila.nombreCtrl.text = cols[0];
+      fila.apellidosCtrl.text = cols.length > 1 ? cols[1] : '';
+      fila.emailCtrl.text = cols.length > 2 ? cols[2] : '';
+      // Rol: columna 3 si existe, si no ROLE_ALUMNO por defecto
+      if (cols.length > 3 && cols[3].isNotEmpty) {
+        final rolCsv = cols[3].toUpperCase();
+        fila.rol = rolCsv.startsWith('ROLE_') ? rolCsv : 'ROLE_$rolCsv';
+      }
+      // Contraseña: columna 4 si existe
+      if (cols.length > 4 && cols[4].isNotEmpty) {
+        fila.passwordCtrl.text = cols[4];
+      }
+      nuevasFila.add(fila);
+    }
+
+    if (nuevasFila.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se encontraron filas válidas en el CSV.')),
+      );
+      return;
+    }
+
+    setState(() {
+      for (final f in _filas) f.dispose();
+      _filas.clear();
+      _filas.addAll(nuevasFila);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${nuevasFila.length} usuario(s) cargados desde CSV.')),
+    );
+  }
+
+  void _descargarPlantilla() {
+    const plantilla = 'nombre,apellidos,email,rol,contraseña\n'
+        'Juan,García López,juan.garcia@empresa.com,ROLE_ALUMNO,Nexus@2026\n'
+        'Maria,Fernandez Ruiz,maria.fernandez@empresa.com,ROLE_TUTOR_CENTRO,Nexus@2026\n';
+    final blob = html.Blob([plantilla], 'text/csv');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute('download', 'plantilla_usuarios.csv')
+      ..click();
+    html.Url.revokeObjectUrl(url);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -2065,6 +2140,31 @@ class _DialogBatchUsuariosState extends State<_DialogBatchUsuarios> {
                 if (_resultado != null)
                   _ResultadoBatch(resultado: _resultado!)
                 else ...[
+                  // Hint CSV
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: NexusColors.primaryLight,
+                        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                        border: Border.all(color: const Color(0xFFB5D4F4), width: 0.5),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, size: 13, color: NexusColors.primaryText),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'CSV esperado: nombre, apellidos, email, rol (ROLE_ALUMNO / ROLE_TUTOR_CENTRO / ROLE_TUTOR_EMPRESA), contraseña (opcional)',
+                              style: NexusText.caption.copyWith(color: NexusColors.primaryText),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   // Tabla de filas
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 400),
@@ -2097,26 +2197,52 @@ class _DialogBatchUsuariosState extends State<_DialogBatchUsuarios> {
                   // Botones
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: Row(
+                    child: Column(
                       children: [
-                        TextButton.icon(
-                          onPressed: () => setState(() => _filas.add(_FilaUsuario())),
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Añadir fila'),
+                        // Fila 1: acciones de importación
+                        Row(
+                          children: [
+                            TextButton.icon(
+                              onPressed: () => setState(() => _filas.add(_FilaUsuario())),
+                              icon: const Icon(Icons.add, size: 15),
+                              label: const Text('Añadir fila', style: TextStyle(fontSize: 12)),
+                            ),
+                            const SizedBox(width: 4),
+                            OutlinedButton.icon(
+                              onPressed: _importarCsv,
+                              icon: const Icon(Icons.upload_file_outlined, size: 15),
+                              label: const Text('Importar CSV', style: TextStyle(fontSize: 12)),
+                              style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                            ),
+                            const SizedBox(width: 4),
+                            TextButton.icon(
+                              onPressed: _descargarPlantilla,
+                              icon: const Icon(Icons.download_outlined, size: 15),
+                              label: const Text('Plantilla', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(foregroundColor: NexusColors.inkSecondary),
+                            ),
+                          ],
                         ),
-                        const Spacer(),
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancelar'),
-                        ),
-                        const SizedBox(width: 10),
-                        FilledButton(
-                          onPressed: _enviando ? null : _enviar,
-                          style: FilledButton.styleFrom(backgroundColor: NexusColors.primary),
-                          child: _enviando
-                              ? const SizedBox(width: 18, height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : Text('Crear ${_filas.length} usuario${_filas.length > 1 ? 's' : ''}'),
+                        const SizedBox(height: 8),
+                        // Fila 2: confirmar / cancelar
+                        Row(
+                          children: [
+                            const Spacer(),
+                            OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancelar'),
+                            ),
+                            const SizedBox(width: 10),
+                            FilledButton(
+                              onPressed: _enviando ? null : _enviar,
+                              style: FilledButton.styleFrom(backgroundColor: NexusColors.primary),
+                              child: _enviando
+                                  ? const SizedBox(width: 18, height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : Text('Crear ${_filas.length} usuario${_filas.length > 1 ? 's' : ''}'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
