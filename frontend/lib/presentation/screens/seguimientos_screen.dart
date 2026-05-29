@@ -273,7 +273,7 @@ class _KpiRow extends StatelessWidget {
                       'Revisión requerida',
                       style: TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: NexusColors.danger,
                       ),
@@ -344,7 +344,7 @@ class _KpiCard extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.8,
                   color: context.nxt.inkTertiary,
@@ -494,7 +494,7 @@ class _TH extends StatelessWidget {
         label,
         style: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: context.nxt.inkTertiary,
           letterSpacing: 0.4,
@@ -586,7 +586,7 @@ class _EstadoBadge extends StatelessWidget {
             decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(NexusSizes.radiusFull)),
             child: Text(
               label,
-              style: TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.w500, color: fg),
+              style: TextStyle(fontFamily: 'Inter', fontSize: 12, fontWeight: FontWeight.w500, color: fg),
               overflow: TextOverflow.ellipsis,
             ),
           ),

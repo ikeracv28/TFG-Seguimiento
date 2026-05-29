@@ -737,7 +737,7 @@ class _HorasStat extends StatelessWidget {
           const SizedBox(height: 4),
           Text(label,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, color: context.nxt.inkSecondary, height: 1.3)),
+              style: TextStyle(fontSize: 11, color: context.nxt.inkSecondary, height: 1.3)),
         ],
       ),
     );
@@ -770,7 +770,7 @@ class _EstadoPill extends StatelessWidget {
         border: Border.all(color: color.withAlpha(77), width: 0.5),
       ),
       child: Text(label,
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color)),
     );
   }
 }
@@ -1132,7 +1132,7 @@ class _StatTile extends StatelessWidget {
                   fontSize: 22, fontWeight: FontWeight.w600,
                   color: accent, letterSpacing: -0.5)),
           const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 11, color: labelColor)),
+          Text(label, style: TextStyle(fontSize: 12, color: labelColor)),
         ],
       ),
     );
@@ -1333,7 +1333,7 @@ class _AusenciaEmpresaCard extends StatelessWidget {
                           SizedBox(width: 3),
                           Text('Ver justificante',
                               style: TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w500,
+                                  fontSize: 12, fontWeight: FontWeight.w500,
                                   color: NexusColors.successText)),
                         ],
                       ),
@@ -1450,7 +1450,7 @@ class _HoursPill extends StatelessWidget {
       ),
       child: Text(esSemanal ? '$label/sem' : label,
           style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600,
+              fontSize: 12, fontWeight: FontWeight.w600,
               color: context.nxt.inkSecondary)),
     );
   }
@@ -1471,7 +1471,7 @@ class _StatusPill extends StatelessWidget {
         border: Border.all(color: color.withAlpha(77), width: 0.5),
       ),
       child: Text(label,
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color)),
     );
   }
 }
@@ -1954,7 +1954,7 @@ class _HorasRestantesCard extends StatelessWidget {
                       child: const Text(
                         'Completado',
                         style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: NexusColors.successText),
                       ),

@@ -903,7 +903,6 @@ class _StudentItem extends StatelessWidget {
                         overflow: TextOverflow.ellipsis),
                     Text(practica.empresaNombre,
                         style: NexusText.caption.copyWith(
-                            fontSize: 10,
                             color: context.nxt.inkSecondary),
                         overflow: TextOverflow.ellipsis),
                   ],
@@ -936,7 +935,7 @@ class _MiniPill extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w600, color: textColor)),
+              fontSize: 11, fontWeight: FontWeight.w600, color: textColor)),
     );
   }
 }
@@ -1842,7 +1841,7 @@ class _IncTab extends StatelessWidget {
                 child: Text('$count',
                     style: TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: color)),
               ),
@@ -1949,7 +1948,7 @@ class _IncidenciaTableRow extends StatelessWidget {
                     child: Text(tipoLabel,
                         style: TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: tipoFg),
                         overflow: TextOverflow.ellipsis),
@@ -1971,7 +1970,7 @@ class _IncidenciaTableRow extends StatelessWidget {
                     child: Text(estadoLabel,
                         style: TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: estadoFg),
                         overflow: TextOverflow.ellipsis),
@@ -1981,7 +1980,7 @@ class _IncidenciaTableRow extends StatelessWidget {
                     Text(
                       'por ${incidencia.resueltaPorNombre}',
                       style: TextStyle(
-                          fontFamily: 'Inter', fontSize: 10,
+                          fontFamily: 'Inter', fontSize: 11,
                           color: context.nxt.inkTertiary),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -2015,7 +2014,7 @@ class _IncidenciaTableRow extends StatelessWidget {
                             children: [
                               Text(
                                 isMobile ? 'Ver' : 'Gestionar',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: NexusColors.dangerText, fontFamily: 'Inter'),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NexusColors.dangerText, fontFamily: 'Inter'),
                               ),
                               if (!isMobile) ...[
                                 const SizedBox(width: 4),
@@ -2070,7 +2069,7 @@ class _ParteTableRow extends StatelessWidget {
           fmtH(seguimiento.horasRealizadas),
           style: const TextStyle(
               fontFamily: 'Inter',
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: NexusColors.primaryText),
           textAlign: TextAlign.center,
@@ -2099,7 +2098,7 @@ class _ParteTableRow extends StatelessWidget {
                   children: [
                     Icon(Icons.check_circle_outline_rounded, size: 12, color: NexusColors.successText),
                     SizedBox(width: 4),
-                    Text('Validar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: NexusColors.successText, fontFamily: 'Inter')),
+                    Text('Validar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NexusColors.successText, fontFamily: 'Inter')),
                   ],
                 ),
               ),
@@ -2261,7 +2260,7 @@ class _ParteRow extends StatelessWidget {
                 children: [
                   Icon(Icons.check_circle_outline_rounded, size: 12, color: NexusColors.successText),
                   SizedBox(width: 4),
-                  Text('Validar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: NexusColors.successText, fontFamily: 'Inter')),
+                  Text('Validar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: NexusColors.successText, fontFamily: 'Inter')),
                 ],
               ),
             ),

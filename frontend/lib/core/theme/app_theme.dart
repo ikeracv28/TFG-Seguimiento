@@ -174,8 +174,8 @@ class NexusText {
   static const TextStyle heading3 = TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
   static const TextStyle body     = TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5);
   static const TextStyle small    = TextStyle(fontSize: 13, fontWeight: FontWeight.w400);
-  static const TextStyle caption  = TextStyle(fontSize: 12, fontWeight: FontWeight.w400);
-  static const TextStyle label    = TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.6);
+  static const TextStyle caption  = TextStyle(fontSize: 13, fontWeight: FontWeight.w400);
+  static const TextStyle label    = TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.6);
 }
 
 // ── Tamaños ───────────────────────────────────────────────────────────────────

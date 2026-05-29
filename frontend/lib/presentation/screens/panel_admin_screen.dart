@@ -628,7 +628,7 @@ class _PracticaEnCursoRow extends StatelessWidget {
                       Text(
                         'Tutor: ${practica.tutorCentroNombre}',
                         style: NexusText.caption.copyWith(
-                            color: context.nxt.inkTertiary, fontSize: 10),
+                            color: context.nxt.inkTertiary, fontSize: 11),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -643,7 +643,7 @@ class _PracticaEnCursoRow extends StatelessWidget {
                   ),
                   child: const Text('En curso',
                       style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: NexusColors.successText)),
                 ),
@@ -938,7 +938,7 @@ class _VistaPracticasState extends State<_VistaPracticas> {
                             child: Text(
                               '$count',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: activo ? Colors.white : context.nxt.inkSecondary,
                               ),
@@ -1071,7 +1071,7 @@ class _PracticaCard extends StatelessWidget {
                       ),
                       child: Text(_labelEstado,
                           style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: _textEstado)),
                     ),
@@ -1125,7 +1125,7 @@ class _PracticaCard extends StatelessWidget {
                       Expanded(
                         child: Text(practica.tutorCentroNombre,
                             style: NexusText.caption.copyWith(
-                                fontSize: 11, color: context.nxt.inkTertiary),
+                                fontSize: 12, color: context.nxt.inkTertiary),
                             overflow: TextOverflow.ellipsis),
                       ),
                     ],
@@ -2684,12 +2684,12 @@ class _AuditLogTile extends StatelessWidget {
                       const SizedBox(width: NexusSizes.spaceXS),
                       Text('#${log.entidadId}',
                           style: TextStyle(
-                              fontSize: 11, color: context.nxt.inkTertiary)),
+                              fontSize: 12, color: context.nxt.inkTertiary)),
                     ],
                     const Spacer(),
                     Text(fechaStr,
                         style: TextStyle(
-                            fontSize: 11, color: context.nxt.inkTertiary)),
+                            fontSize: 12, color: context.nxt.inkTertiary)),
                   ],
                 ),
                 if (log.descripcion != null && log.descripcion!.isNotEmpty) ...[
@@ -2702,7 +2702,7 @@ class _AuditLogTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text('por ${log.usuarioEmail}',
                       style: TextStyle(
-                          fontSize: 11, color: context.nxt.inkTertiary)),
+                          fontSize: 12, color: context.nxt.inkTertiary)),
                 ],
               ],
             ),
@@ -2729,7 +2729,7 @@ class _ChipModulo extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha:0.3)),
       ),
       child: Text(modulo,
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
     );
   }
 }
