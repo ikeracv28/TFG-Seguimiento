@@ -706,13 +706,30 @@ class _NavBadgeBtn extends StatelessWidget {
 
 // ── Student list ───────────────────────────────────────────────────────────────
 
-class _StudentList extends StatelessWidget {
+class _StudentList extends StatefulWidget {
   final TutorCentroProvider provider;
   final bool isMobile;
   const _StudentList({required this.provider, this.isMobile = false});
 
   @override
+  State<_StudentList> createState() => _StudentListState();
+}
+
+class _StudentListState extends State<_StudentList> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final provider = widget.provider;
+    final isMobile = widget.isMobile;
+
     if (provider.isLoading) {
       return Container(
         width: isMobile ? double.infinity : 220,
@@ -721,7 +738,14 @@ class _StudentList extends StatelessWidget {
       );
     }
 
-    final practicas = provider.practicas;
+    final todas = provider.practicas;
+    final practicas = _query.isEmpty
+        ? todas
+        : todas.where((p) {
+            final q = normalizarTexto(_query);
+            return normalizarTexto(p.alumnoNombre).contains(q) ||
+                normalizarTexto(p.empresaNombre).contains(q);
+          }).toList();
 
     return Container(
       width: isMobile ? double.infinity : 220,
@@ -734,10 +758,10 @@ class _StudentList extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Header
+          // Header con buscador
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
             decoration: BoxDecoration(
               border: Border(
                   bottom: BorderSide(
@@ -752,9 +776,50 @@ class _StudentList extends StatelessWidget {
                         .copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(
-                  '${practicas.length} en prácticas activas',
+                  '${todas.length} en prácticas activas',
                   style: NexusText.caption
                       .copyWith(color: context.nxt.inkSecondary),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _searchCtrl,
+                  style: NexusText.caption,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: 'Buscar alumno…',
+                    hintStyle: NexusText.caption
+                        .copyWith(color: context.nxt.inkTertiary),
+                    prefixIcon: Icon(Icons.search,
+                        size: 15, color: context.nxt.inkTertiary),
+                    suffixIcon: _query.isNotEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              _searchCtrl.clear();
+                              setState(() => _query = '');
+                            },
+                            child: Icon(Icons.close,
+                                size: 14, color: context.nxt.inkTertiary),
+                          )
+                        : null,
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                    filled: true,
+                    fillColor: context.nxt.surfaceAlt,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                      borderSide: BorderSide(color: context.nxt.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                      borderSide: BorderSide(color: context.nxt.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                      borderSide: const BorderSide(
+                          color: NexusColors.primary, width: 1.5),
+                    ),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
                 ),
               ],
             ),
@@ -764,7 +829,10 @@ class _StudentList extends StatelessWidget {
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(NexusSizes.spaceLG),
-                      child: Text('Sin alumnos asignados',
+                      child: Text(
+                          _query.isEmpty
+                              ? 'Sin alumnos asignados'
+                              : 'Sin resultados para "$_query"',
                           style: NexusText.caption
                               .copyWith(color: context.nxt.inkSecondary),
                           textAlign: TextAlign.center),

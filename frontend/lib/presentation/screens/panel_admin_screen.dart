@@ -1593,7 +1593,21 @@ class _VistaUsuarios extends StatelessWidget {
   }
 }
 
-class _ListaUsuarios extends StatelessWidget {
+class _ListaUsuarios extends StatefulWidget {
+  @override
+  State<_ListaUsuarios> createState() => _ListaUsuariosState();
+}
+
+class _ListaUsuariosState extends State<_ListaUsuarios> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AdminProvider>(builder: (context, admin, _) {
@@ -1605,54 +1619,98 @@ class _ListaUsuarios extends StatelessWidget {
         );
       }
 
+      List filtrar(List<dynamic> lista) {
+        if (_query.isEmpty) return lista;
+        final q = normalizarTexto(_query);
+        return lista.where((u) {
+          final nombre = normalizarTexto('${u.nombre} ${u.apellidos}');
+          final email  = normalizarTexto(u.email as String);
+          return nombre.contains(q) || email.contains(q);
+        }).toList();
+      }
+
       final grupos = [
-        (
-          'Alumnos',
-          admin.alumnos,
-          NexusColors.neutral,
-          Icons.school_outlined,
-        ),
-        (
-          'Tutores de Centro',
-          admin.tutoresCentro,
-          NexusColors.primary,
-          Icons.account_balance_outlined,
-        ),
-        (
-          'Tutores de Empresa',
-          admin.tutoresEmpresa,
-          NexusColors.warning,
-          Icons.business_center_outlined,
-        ),
-        (
-          'Administradores',
-          admin.usuarios
-              .where((u) => u.roles.contains('ROLE_ADMIN'))
-              .toList(),
-          NexusColors.danger,
-          Icons.admin_panel_settings_outlined,
-        ),
+        ('Alumnos',            filtrar(admin.alumnos),         NexusColors.neutral, Icons.school_outlined),
+        ('Tutores de Centro',  filtrar(admin.tutoresCentro),   NexusColors.primary, Icons.account_balance_outlined),
+        ('Tutores de Empresa', filtrar(admin.tutoresEmpresa),  NexusColors.warning, Icons.business_center_outlined),
+        ('Administradores',    filtrar(admin.usuarios.where((u) => u.roles.contains('ROLE_ADMIN')).toList()),
+            NexusColors.danger, Icons.admin_panel_settings_outlined),
       ];
 
-      return ListView(
-        padding: const EdgeInsets.all(NexusSizes.space2XL),
+      final hayResultados = grupos.any((g) => (g.$2 as List).isNotEmpty);
+
+      return Column(
         children: [
-          for (final grupo in grupos)
-            if (grupo.$2.isNotEmpty) ...[
-              _SeccionHeader(
-                label: grupo.$1,
-                count: grupo.$2.length,
-                color: grupo.$3,
-                icon: grupo.$4,
+          // ── Buscador ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                NexusSizes.space2XL, NexusSizes.spaceLG,
+                NexusSizes.space2XL, NexusSizes.spaceSM),
+            child: TextField(
+              controller: _searchCtrl,
+              style: NexusText.small,
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Buscar por nombre, apellido o email…',
+                hintStyle: NexusText.small.copyWith(color: context.nxt.inkTertiary),
+                prefixIcon: Icon(Icons.search, size: 18, color: context.nxt.inkTertiary),
+                suffixIcon: _query.isNotEmpty
+                    ? GestureDetector(
+                        onTap: () {
+                          _searchCtrl.clear();
+                          setState(() => _query = '');
+                        },
+                        child: Icon(Icons.close, size: 16, color: context.nxt.inkTertiary),
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                filled: true,
+                fillColor: context.nxt.surfaceAlt,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                  borderSide: BorderSide(color: context.nxt.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                  borderSide: BorderSide(color: context.nxt.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                  borderSide: const BorderSide(color: NexusColors.primary, width: 1.5),
+                ),
               ),
-              const SizedBox(height: NexusSizes.spaceSM),
-              ...grupo.$2.map((u) => Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: NexusSizes.spaceSM),
-                    child: _UsuarioCard(usuario: u),
-                  )),
-              const SizedBox(height: NexusSizes.spaceLG),
-            ],
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          // ── Lista ──
+          Expanded(
+            child: !hayResultados
+                ? Center(
+                    child: Text('Sin resultados para "$_query"',
+                        style: TextStyle(color: context.nxt.inkSecondary)))
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                        NexusSizes.space2XL, NexusSizes.spaceSM,
+                        NexusSizes.space2XL, NexusSizes.space2XL),
+                    children: [
+                      for (final grupo in grupos)
+                        if ((grupo.$2 as List).isNotEmpty) ...[
+                          _SeccionHeader(
+                            label: grupo.$1,
+                            count: (grupo.$2 as List).length,
+                            color: grupo.$3,
+                            icon: grupo.$4,
+                          ),
+                          const SizedBox(height: NexusSizes.spaceSM),
+                          ...(grupo.$2 as List).map((u) => Padding(
+                                padding: const EdgeInsets.only(bottom: NexusSizes.spaceSM),
+                                child: _UsuarioCard(usuario: u),
+                              )),
+                          const SizedBox(height: NexusSizes.spaceLG),
+                        ],
+                    ],
+                  ),
+          ),
         ],
       );
     });

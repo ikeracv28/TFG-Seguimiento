@@ -435,6 +435,17 @@ String fmtH(num h) {
   return '${hh}h ${mm}min';
 }
 
+// ── Normalización de texto para búsqueda sin distinción de acentos ────────────
+// Ej: "García" → "garcia" | "Ángel" → "angel" | "Ñoño" → "nono"
+String normalizarTexto(String s) => s
+    .toLowerCase()
+    .replaceAll(RegExp(r'[áàäâã]'), 'a')
+    .replaceAll(RegExp(r'[éèëê]'), 'e')
+    .replaceAll(RegExp(r'[íìïî]'), 'i')
+    .replaceAll(RegExp(r'[óòöôõ]'), 'o')
+    .replaceAll(RegExp(r'[úùüû]'), 'u')
+    .replaceAll('ñ', 'n');
+
 // ── Formateo de fecha de seguimiento según tipo ────────────────────────────────
 // DIARIO: "12 may 26" | SEMANAL: "Sem. 12-16 may 26"
 String fmtSeguimientoFecha(Seguimiento s) {
