@@ -1,5 +1,5 @@
 import '../models/tutoria_model.dart';
-import 'api_client.dart';
+import '../../core/config/api_client.dart';
 
 class TutoriaService {
   final ApiClient _apiClient;
