@@ -54,12 +54,12 @@ ALTER TABLE incidencias
     ADD CONSTRAINT fk_incidencia_resolutor
         FOREIGN KEY (resuelta_por) REFERENCES usuarios(id) ON DELETE SET NULL;
 
--- 9. mensajes.emisor_id: hacer nullable + SET NULL
-ALTER TABLE mensajes ALTER COLUMN emisor_id DROP NOT NULL;
+-- 9. mensajes.remitente_id (renombrado desde emisor_id en V11): hacer nullable + SET NULL
+ALTER TABLE mensajes ALTER COLUMN remitente_id DROP NOT NULL;
 ALTER TABLE mensajes
     DROP CONSTRAINT IF EXISTS fk_mensaje_emisor,
     ADD CONSTRAINT fk_mensaje_emisor
-        FOREIGN KEY (emisor_id) REFERENCES usuarios(id) ON DELETE SET NULL;
+        FOREIGN KEY (remitente_id) REFERENCES usuarios(id) ON DELETE SET NULL;
 
 -- 10 & 11. ausencias: constraints sin nombre — los localizamos por pg_constraint
 DO $$
