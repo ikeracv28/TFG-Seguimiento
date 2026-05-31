@@ -13,6 +13,7 @@ import 'presentation/providers/chat_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/perfil_provider.dart';
 import 'presentation/providers/notificacion_provider.dart';
+import 'presentation/providers/tutoria_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TutorCentroProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => TutoriaProvider()),
         ChangeNotifierProxyProvider<AuthProvider, NotificacionProvider>(
           create: (_) => NotificacionProvider(),
           update: (_, auth, notif) {

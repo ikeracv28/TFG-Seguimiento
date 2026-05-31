@@ -2,6 +2,8 @@
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../providers/tutoria_provider.dart';
+import '../../data/models/tutoria_model.dart';
 import '../providers/theme_provider.dart';
 import '../../data/models/ausencia_model.dart';
 import '../../data/models/incidencia_model.dart';
@@ -17,7 +19,7 @@ import '../widgets/nexus_avatar.dart';
 import '../providers/notificacion_provider.dart';
 import '../widgets/nexus_logo.dart';
 
-enum _Mode { alumnos, partes, incidencias, chat }
+enum _Mode { alumnos, partes, incidencias, chat, tutorias }
 
 class PanelTutorCentroScreen extends StatefulWidget {
   const PanelTutorCentroScreen({super.key});
@@ -130,6 +132,8 @@ class _PanelTutorCentroScreenState extends State<PanelTutorCentroScreen> {
           alumnoNombre: provider.selectedPractica?.alumnoNombre ?? '',
           empresaNombre: provider.selectedPractica?.empresaNombre ?? '',
         );
+      case _Mode.tutorias:
+        return const _VistaTutorias();
       default:
         return const SizedBox.shrink();
     }
@@ -153,6 +157,8 @@ class _PanelTutorCentroScreenState extends State<PanelTutorCentroScreen> {
           alumnoNombre: provider.selectedPractica?.alumnoNombre ?? '',
           empresaNombre: provider.selectedPractica?.empresaNombre ?? '',
         );
+      case _Mode.tutorias:
+        return const _VistaTutorias();
       case _Mode.alumnos:
         if (provider.selectedPractica == null) {
           return _StudentList(provider: provider, isMobile: true);
@@ -397,6 +403,14 @@ class _Sidebar extends StatelessWidget {
             tooltip: 'Chat',
             isActive: mode == _Mode.chat,
             onTap: () => onChangeMode(_Mode.chat),
+          ),
+          const SizedBox(height: 4),
+          _NavBtn(
+            icon: Icons.event_outlined,
+            activeIcon: Icons.event,
+            tooltip: 'Tutorías',
+            isActive: mode == _Mode.tutorias,
+            onTap: () => onChangeMode(_Mode.tutorias),
           ),
           const Spacer(),
           // Perfil
@@ -2386,6 +2400,302 @@ class _IncidenciaDetailCard extends StatelessWidget {
   }
 }
 
+// ── Vista Tutorías ─────────────────────────────────────────────────────────────
+
+class _VistaTutorias extends StatefulWidget {
+  const _VistaTutorias();
+  @override
+  State<_VistaTutorias> createState() => _VistaTutoriasState();
+}
+
+class _VistaTutoriasState extends State<_VistaTutorias> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TutoriaProvider>().cargarSesiones();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<TutoriaProvider>(builder: (context, prov, _) {
+      final sesiones = prov.sesiones;
+      final hoy = DateTime.now();
+
+      // Agrupa las sesiones futuras por fecha
+      final futuras = sesiones.where((t) => t.fechaHora.isAfter(hoy)).toList();
+      final pasadas = sesiones.where((t) => !t.fechaHora.isAfter(hoy)).toList();
+
+      // Encuentra la fecha de la próxima sesión planificada (para el botón notificar)
+      final proximaFecha = futuras.isNotEmpty
+          ? '${futuras.first.fechaHora.year.toString().padLeft(4, '0')}-'
+            '${futuras.first.fechaHora.month.toString().padLeft(2, '0')}-'
+            '${futuras.first.fechaHora.day.toString().padLeft(2, '0')}'
+          : null;
+
+      final sinNotificar = futuras.where((t) => !t.notificado).length;
+
+      return Column(
+        children: [
+          // Cabecera
+          Container(
+            color: context.nxt.surface,
+            padding: const EdgeInsets.symmetric(
+                horizontal: NexusSizes.space3XL, vertical: NexusSizes.spaceLG),
+            child: Row(
+              children: [
+                const Text('Tutorías FCT', style: NexusText.heading2),
+                const Spacer(),
+                if (sinNotificar > 0 && proximaFecha != null)
+                  OutlinedButton.icon(
+                    onPressed: () => _enviarConvocatorias(context, prov, proximaFecha),
+                    icon: const Icon(Icons.send_outlined, size: 16),
+                    label: Text('Enviar convocatorias ($sinNotificar)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: NexusColors.primary,
+                      side: const BorderSide(color: NexusColors.primary),
+                    ),
+                  ),
+                const SizedBox(width: 10),
+                FilledButton.icon(
+                  onPressed: () => _mostrarDialogPlanificar(context, prov),
+                  icon: const Icon(Icons.calendar_month_outlined, size: 16),
+                  label: const Text('Planificar sesión'),
+                  style: FilledButton.styleFrom(backgroundColor: NexusColors.primary),
+                ),
+              ],
+            ),
+          ),
+          // Lista
+          Expanded(
+            child: prov.cargando
+                ? const Center(child: CircularProgressIndicator())
+                : sesiones.isEmpty
+                    ? Center(
+                        child: Text('No hay tutorías planificadas.',
+                            style: TextStyle(color: context.nxt.inkSecondary)),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.all(NexusSizes.space2XL),
+                        children: [
+                          if (futuras.isNotEmpty) ...[
+                            Text('Próximas',
+                                style: NexusText.label
+                                    .copyWith(color: context.nxt.inkSecondary)),
+                            const SizedBox(height: NexusSizes.spaceSM),
+                            ...futuras.map((t) => _TutoriaRow(tutoria: t)),
+                            const SizedBox(height: NexusSizes.spaceLG),
+                          ],
+                          if (pasadas.isNotEmpty) ...[
+                            Text('Anteriores',
+                                style: NexusText.label
+                                    .copyWith(color: context.nxt.inkSecondary)),
+                            const SizedBox(height: NexusSizes.spaceSM),
+                            ...pasadas.map((t) => _TutoriaRow(tutoria: t)),
+                          ],
+                        ],
+                      ),
+          ),
+        ],
+      );
+    });
+  }
+
+  void _mostrarDialogPlanificar(BuildContext context, TutoriaProvider prov) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _DialogPlanificar(prov: prov),
+    );
+  }
+
+  Future<void> _enviarConvocatorias(
+      BuildContext context, TutoriaProvider prov, String fecha) async {
+    final n = await prov.enviarNotificaciones(fecha);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(n > 0
+            ? 'Convocatorias enviadas: $n'
+            : 'No se enviaron convocatorias'),
+        backgroundColor: n > 0 ? NexusColors.success : NexusColors.warning,
+      ));
+    }
+  }
+}
+
+class _TutoriaRow extends StatelessWidget {
+  final TutoriaModel tutoria;
+  const _TutoriaRow({required this.tutoria});
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('EEE d MMM · HH:mm\'h\'', 'es');
+    final esFutura = tutoria.fechaHora.isAfter(DateTime.now());
+    return Container(
+      margin: const EdgeInsets.only(bottom: NexusSizes.spaceSM),
+      padding: const EdgeInsets.symmetric(
+          horizontal: NexusSizes.spaceLG, vertical: NexusSizes.spaceMD),
+      decoration: BoxDecoration(
+        color: context.nxt.surface,
+        border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
+        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.schedule_outlined,
+              size: 16,
+              color: esFutura ? NexusColors.primary : context.nxt.inkTertiary),
+          const SizedBox(width: NexusSizes.spaceMD),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(fmt.format(tutoria.fechaHora),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: context.nxt.ink)),
+                Text(tutoria.alumnoNombre,
+                    style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+              ],
+            ),
+          ),
+          Text('${tutoria.duracionMinutos} min',
+              style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+          const SizedBox(width: NexusSizes.spaceMD),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: tutoria.notificado
+                  ? NexusColors.successLight
+                  : NexusColors.warningLight,
+              borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+            ),
+            child: Text(
+              tutoria.notificado ? 'Notificado' : 'Pendiente',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: tutoria.notificado
+                      ? NexusColors.successText
+                      : NexusColors.warningText),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DialogPlanificar extends StatefulWidget {
+  final TutoriaProvider prov;
+  const _DialogPlanificar({required this.prov});
+  @override
+  State<_DialogPlanificar> createState() => _DialogPlanificarState();
+}
+
+class _DialogPlanificarState extends State<_DialogPlanificar> {
+  DateTime? _fecha;
+  TimeOfDay _horaInicio = const TimeOfDay(hour: 9, minute: 0);
+  int _duracion = 15;
+  bool _enviando = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmtFecha = _fecha != null
+        ? DateFormat('dd/MM/yyyy').format(_fecha!)
+        : 'Seleccionar fecha';
+
+    return AlertDialog(
+      title: const Text('Planificar sesión de tutorías'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Fecha
+          OutlinedButton.icon(
+            onPressed: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now().add(const Duration(days: 1)),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                locale: const Locale('es'),
+              );
+              if (d != null) setState(() => _fecha = d);
+            },
+            icon: const Icon(Icons.calendar_today_outlined, size: 16),
+            label: Text(fmtFecha),
+          ),
+          const SizedBox(height: NexusSizes.spaceMD),
+          // Hora inicio
+          OutlinedButton.icon(
+            onPressed: () async {
+              final t = await showTimePicker(
+                context: context,
+                initialTime: _horaInicio,
+              );
+              if (t != null) setState(() => _horaInicio = t);
+            },
+            icon: const Icon(Icons.access_time_outlined, size: 16),
+            label: Text(
+                'Inicio: ${_horaInicio.hour.toString().padLeft(2, '0')}:${_horaInicio.minute.toString().padLeft(2, '0')}'),
+          ),
+          const SizedBox(height: NexusSizes.spaceMD),
+          // Duración
+          Row(
+            children: [
+              const Text('Duración por slot: '),
+              DropdownButton<int>(
+                value: _duracion,
+                items: [10, 15, 20, 30]
+                    .map((v) => DropdownMenuItem(value: v, child: Text('$v min')))
+                    .toList(),
+                onChanged: (v) => setState(() => _duracion = v!),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _enviando || _fecha == null ? null : () => _generar(),
+          style: FilledButton.styleFrom(backgroundColor: NexusColors.primary),
+          child: _enviando
+              ? const SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Text('Generar slots'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _generar() async {
+    setState(() => _enviando = true);
+    final fecha =
+        '${_fecha!.year.toString().padLeft(4, '0')}-${_fecha!.month.toString().padLeft(2, '0')}-${_fecha!.day.toString().padLeft(2, '0')}';
+    final hora =
+        '${_horaInicio.hour.toString().padLeft(2, '0')}:${_horaInicio.minute.toString().padLeft(2, '0')}:00';
+    final ok = await widget.prov.planificar(
+        fecha: fecha, horaInicio: hora, duracionMinutos: _duracion);
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok
+            ? 'Sesión planificada correctamente'
+            : 'Error al planificar la sesión'),
+        backgroundColor: ok ? NexusColors.success : NexusColors.danger,
+      ));
+    }
+  }
+}
+
 // ── Mobile bottom nav ──────────────────────────────────────────────────────────
 
 class _MobileBottomNav extends StatelessWidget {
@@ -2441,6 +2751,13 @@ class _MobileBottomNav extends StatelessWidget {
             label: 'Chat',
             isActive: mode == _Mode.chat,
             onTap: () => onChangeMode(_Mode.chat),
+          ),
+          _BottomItem(
+            icon: Icons.event_outlined,
+            activeIcon: Icons.event,
+            label: 'Tutorías',
+            isActive: mode == _Mode.tutorias,
+            onTap: () => onChangeMode(_Mode.tutorias),
           ),
         ],
       ),

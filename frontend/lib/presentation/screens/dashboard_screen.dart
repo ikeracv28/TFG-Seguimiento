@@ -14,6 +14,8 @@ import 'perfil_screen.dart';
 import 'notificaciones_screen.dart';
 import '../widgets/nexus_avatar.dart';
 import '../providers/notificacion_provider.dart';
+import '../providers/tutoria_provider.dart';
+import 'package:intl/intl.dart';
 import '../widgets/nexus_logo.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -31,6 +33,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<PracticaProvider>(context, listen: false).cargarDashboard();
+      Provider.of<TutoriaProvider>(context, listen: false).cargarProximaTutoria();
     });
   }
 
@@ -421,6 +424,8 @@ class _DashboardContent extends StatelessWidget {
 
     final rightCol = Column(
       children: [
+        const _ProximaTutoriaCard(),
+        const SizedBox(height: NexusSizes.spaceLG),
         _ResponsablesCard(practica: p),
         const SizedBox(height: NexusSizes.spaceLG),
         _AyudaCard(
@@ -1189,3 +1194,51 @@ class _NexusBottomNav extends StatelessWidget {
     );
   }
 }
+
+// ─── Card próxima tutoría (solo alumno) ─────────────────────────────────────
+
+class _ProximaTutoriaCard extends StatelessWidget {
+  const _ProximaTutoriaCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<TutoriaProvider>(builder: (context, prov, _) {
+      final tutoria = prov.proximaTutoria;
+      if (tutoria == null) return const SizedBox.shrink();
+
+      final fmt = DateFormat('EEEE d \'de\' MMMM · HH:mm\'h\'', 'es');
+      return Container(
+        padding: const EdgeInsets.all(NexusSizes.spaceLG),
+        decoration: BoxDecoration(
+          color: NexusColors.primaryLight,
+          border: Border.all(color: NexusColors.primary.withAlpha(80)),
+          borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.event_outlined, color: NexusColors.primary, size: 22),
+            const SizedBox(width: NexusSizes.spaceMD),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Próxima tutoría',
+                      style: NexusText.label.copyWith(color: NexusColors.primaryText)),
+                  const SizedBox(height: 2),
+                  Text(
+                    fmt.format(tutoria.fechaHora),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: NexusColors.primary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
