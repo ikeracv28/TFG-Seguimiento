@@ -1872,12 +1872,15 @@ class _UsuarioCard extends StatelessWidget {
                 context.read<AdminProvider>().toggleActivo(usuario.id),
           ),
           if (!usuario.activo)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20),
-              tooltip: 'Eliminar usuario',
-              color: NexusColors.danger,
-              onPressed: () => _confirmarEliminar(context, usuario),
-            ),
+            Builder(builder: (ctx) {
+              return IconButton(
+                icon: const Icon(Icons.delete_outline, color: NexusColors.danger, size: 20),
+                tooltip: 'Eliminar usuario',
+                onPressed: () => _confirmarEliminar(ctx, usuario),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              );
+            }),
         ],
       ),
     );
