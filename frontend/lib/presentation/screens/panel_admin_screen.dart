@@ -1875,7 +1875,7 @@ class _UsuarioCard extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 20),
               tooltip: 'Eliminar usuario',
-              color: NexusColors.error,
+              color: NexusColors.danger,
               onPressed: () => _confirmarEliminar(context, usuario),
             ),
         ],
@@ -1898,7 +1898,7 @@ class _UsuarioCard extends StatelessWidget {
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: NexusColors.error),
+            style: FilledButton.styleFrom(backgroundColor: NexusColors.danger),
             onPressed: () async {
               Navigator.pop(ctx);
               final ok = await context.read<AdminProvider>().eliminarUsuario(usuario.id);
@@ -1907,7 +1907,7 @@ class _UsuarioCard extends StatelessWidget {
                   content: Text(ok
                       ? 'Usuario eliminado correctamente'
                       : 'Error al eliminar el usuario'),
-                  backgroundColor: ok ? NexusColors.success : NexusColors.error,
+                  backgroundColor: ok ? NexusColors.success : NexusColors.danger,
                 ));
               }
             },
