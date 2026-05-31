@@ -24,7 +24,7 @@ class AuditServiceTest {
     void registrar_persiste_log() {
         auditService.registrar("USUARIOS", "CREAR", 1L, "Usuario creado", "admin@test.com");
 
-        Page<AuditLogResponse> logs = auditService.listar("USUARIOS", PageRequest.of(0, 10));
+        Page<AuditLogResponse> logs = auditService.listar("USUARIOS", null, null, null, null, PageRequest.of(0, 10));
 
         assertThat(logs.getTotalElements()).isGreaterThanOrEqualTo(1);
         assertThat(logs.getContent()).anyMatch(l ->
@@ -37,7 +37,7 @@ class AuditServiceTest {
         auditService.registrar("PRACTICAS", "EDITAR", 10L, "Practica editada", "admin@test.com");
         auditService.registrar("AUSENCIAS", "REGISTRAR", 20L, "Ausencia registrada", "alumno@test.com");
 
-        Page<AuditLogResponse> todos = auditService.listar(null, PageRequest.of(0, 50));
+        Page<AuditLogResponse> todos = auditService.listar(null, null, null, null, null, PageRequest.of(0, 50));
 
         assertThat(todos.getTotalElements()).isGreaterThanOrEqualTo(2);
     }
@@ -48,7 +48,7 @@ class AuditServiceTest {
         auditService.registrar("INCIDENCIAS", "CREAR", 5L, "Incidencia abierta", "alumno@test.com");
         auditService.registrar("SEGUIMIENTOS", "REGISTRAR", 6L, "Seguimiento registrado", "alumno@test.com");
 
-        Page<AuditLogResponse> soloIncidencias = auditService.listar("INCIDENCIAS", PageRequest.of(0, 10));
+        Page<AuditLogResponse> soloIncidencias = auditService.listar("INCIDENCIAS", null, null, null, null, PageRequest.of(0, 10));
 
         assertThat(soloIncidencias.getContent()).allMatch(l -> l.modulo().equals("INCIDENCIAS"));
     }
@@ -58,7 +58,7 @@ class AuditServiceTest {
     void registrar_sin_entidad_id_es_valido() {
         auditService.registrar("MENSAJES", "ENVIAR", null, "Mensaje enviado", "usuario@test.com");
 
-        Page<AuditLogResponse> logs = auditService.listar("MENSAJES", PageRequest.of(0, 10));
+        Page<AuditLogResponse> logs = auditService.listar("MENSAJES", null, null, null, null, PageRequest.of(0, 10));
 
         assertThat(logs.getTotalElements()).isGreaterThanOrEqualTo(1);
     }
@@ -68,7 +68,7 @@ class AuditServiceTest {
     void fecha_se_rellena_automaticamente() {
         auditService.registrar("USUARIOS", "ACTIVAR", 7L, "Usuario activado", "admin@test.com");
 
-        Page<AuditLogResponse> logs = auditService.listar("USUARIOS", PageRequest.of(0, 10));
+        Page<AuditLogResponse> logs = auditService.listar("USUARIOS", null, null, null, null, PageRequest.of(0, 10));
 
         assertThat(logs.getContent()).anyMatch(l -> l.fecha() != null);
     }
@@ -78,7 +78,7 @@ class AuditServiceTest {
     void filtro_modulo_normaliza_a_mayusculas() {
         auditService.registrar("PRACTICAS", "CREAR", 8L, "Nueva practica", "admin@test.com");
 
-        Page<AuditLogResponse> logs = auditService.listar("practicas", PageRequest.of(0, 10));
+        Page<AuditLogResponse> logs = auditService.listar("practicas", null, null, null, null, PageRequest.of(0, 10));
 
         assertThat(logs.getContent()).anyMatch(l -> l.modulo().equals("PRACTICAS"));
     }
