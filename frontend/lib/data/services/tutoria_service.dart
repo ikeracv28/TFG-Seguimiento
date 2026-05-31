@@ -44,4 +44,8 @@ class TutoriaService {
         .post('/tutorias/notificar', queryParameters: {'fecha': fecha});
     return (response.data as Map<String, dynamic>)['enviados'] as int;
   }
+
+  Future<void> eliminarSesion(String fecha) async {
+    await _apiClient.dio.delete('/tutorias/sesion', queryParameters: {'fecha': fecha});
+  }
 }

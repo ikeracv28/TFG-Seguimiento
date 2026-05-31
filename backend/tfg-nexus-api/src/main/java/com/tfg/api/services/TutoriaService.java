@@ -11,4 +11,5 @@ public interface TutoriaService {
     List<TutoriaResponse> getMisSesiones(String emailTutor);
     TutoriaResponse getProximaTutoriaAlumno(String emailAlumno);
     int enviarNotificaciones(LocalDate fecha, String emailTutor);
+    void eliminarSesion(LocalDate fecha, String emailTutor);
 }

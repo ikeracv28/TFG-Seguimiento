@@ -54,4 +54,13 @@ public class TutoriaController {
         int enviados = tutoriaService.enviarNotificaciones(fecha, user.getUsername());
         return ResponseEntity.ok(Map.of("enviados", enviados));
     }
+
+    @DeleteMapping("/sesion")
+    @PreAuthorize("hasRole('TUTOR_CENTRO')")
+    public ResponseEntity<Void> eliminarSesion(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @AuthenticationPrincipal UserDetails user) {
+        tutoriaService.eliminarSesion(fecha, user.getUsername());
+        return ResponseEntity.noContent().build();
+    }
 }

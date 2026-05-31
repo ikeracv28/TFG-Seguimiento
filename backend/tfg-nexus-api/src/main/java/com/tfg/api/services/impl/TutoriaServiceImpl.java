@@ -124,6 +124,16 @@ public class TutoriaServiceImpl implements TutoriaService {
         return enviados;
     }
 
+    @Override
+    @Transactional
+    public void eliminarSesion(LocalDate fecha, String emailTutor) {
+        Usuario tutor = usuarioRepository.findByEmail(emailTutor)
+                .orElseThrow(() -> new ResourceNotFoundException("Tutor no encontrado"));
+        LocalDateTime inicio = fecha.atStartOfDay();
+        LocalDateTime fin = fecha.plusDays(1).atStartOfDay();
+        tutoriaRepository.deleteByTutorCentroIdAndFechaHoraBetween(tutor.getId(), inicio, fin);
+    }
+
     private TutoriaResponse toResponse(Tutoria t) {
         String nombre = t.getAlumno().getNombre() + " " + t.getAlumno().getApellidos();
         return new TutoriaResponse(

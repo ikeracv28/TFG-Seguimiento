@@ -68,4 +68,19 @@ class TutoriaProvider extends ChangeNotifier {
       return 0;
     }
   }
+
+  Future<bool> eliminarSesion(String fecha) async {
+    try {
+      await _service.eliminarSesion(fecha);
+      _sesiones = _sesiones.where((t) {
+        final f = t.fechaHora;
+        final d = '${f.year.toString().padLeft(4, '0')}-${f.month.toString().padLeft(2, '0')}-${f.day.toString().padLeft(2, '0')}';
+        return d != fecha;
+      }).toList();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }

@@ -2417,24 +2417,27 @@ class _VistaTutoriasState extends State<_VistaTutorias> {
     });
   }
 
+  String _toIso(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  // Agrupa la lista por fecha (string YYYY-MM-DD)
+  Map<String, List<TutoriaModel>> _agrupar(List<TutoriaModel> lista) {
+    final map = <String, List<TutoriaModel>>{};
+    for (final t in lista) {
+      final key = _toIso(t.fechaHora);
+      (map[key] ??= []).add(t);
+    }
+    return map;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<TutoriaProvider>(builder: (context, prov, _) {
-      final sesiones = prov.sesiones;
       final hoy = DateTime.now();
-
-      // Agrupa las sesiones futuras por fecha
-      final futuras = sesiones.where((t) => t.fechaHora.isAfter(hoy)).toList();
-      final pasadas = sesiones.where((t) => !t.fechaHora.isAfter(hoy)).toList();
-
-      // Encuentra la fecha de la próxima sesión planificada (para el botón notificar)
-      final proximaFecha = futuras.isNotEmpty
-          ? '${futuras.first.fechaHora.year.toString().padLeft(4, '0')}-'
-            '${futuras.first.fechaHora.month.toString().padLeft(2, '0')}-'
-            '${futuras.first.fechaHora.day.toString().padLeft(2, '0')}'
-          : null;
-
-      final sinNotificar = futuras.where((t) => !t.notificado).length;
+      final futuras = prov.sesiones.where((t) => t.fechaHora.isAfter(hoy)).toList();
+      final pasadas = prov.sesiones.where((t) => !t.fechaHora.isAfter(hoy)).toList();
+      final gruposFuturos = _agrupar(futuras);
+      final gruposPasados = _agrupar(pasadas);
 
       return Column(
         children: [
@@ -2447,52 +2450,67 @@ class _VistaTutoriasState extends State<_VistaTutorias> {
               children: [
                 const Text('Tutorías FCT', style: NexusText.heading2),
                 const Spacer(),
-                if (sinNotificar > 0 && proximaFecha != null)
-                  OutlinedButton.icon(
-                    onPressed: () => _enviarConvocatorias(context, prov, proximaFecha),
-                    icon: const Icon(Icons.send_outlined, size: 16),
-                    label: Text('Enviar convocatorias ($sinNotificar)'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: NexusColors.primary,
-                      side: const BorderSide(color: NexusColors.primary),
-                    ),
-                  ),
-                const SizedBox(width: 10),
                 FilledButton.icon(
-                  onPressed: () => _mostrarDialogPlanificar(context, prov),
-                  icon: const Icon(Icons.calendar_month_outlined, size: 16),
-                  label: const Text('Planificar sesión'),
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => _DialogPlanificar(prov: prov),
+                  ),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Nueva sesión'),
                   style: FilledButton.styleFrom(backgroundColor: NexusColors.primary),
                 ),
               ],
             ),
           ),
-          // Lista
           Expanded(
             child: prov.cargando
                 ? const Center(child: CircularProgressIndicator())
-                : sesiones.isEmpty
+                : prov.sesiones.isEmpty
                     ? Center(
-                        child: Text('No hay tutorías planificadas.',
-                            style: TextStyle(color: context.nxt.inkSecondary)),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.event_outlined,
+                                size: 48, color: context.nxt.inkTertiary),
+                            const SizedBox(height: 12),
+                            Text('Sin tutorías planificadas',
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: context.nxt.inkSecondary)),
+                            const SizedBox(height: 4),
+                            Text('Pulsa "Nueva sesión" para generar los slots',
+                                style: TextStyle(
+                                    fontSize: 13, color: context.nxt.inkTertiary)),
+                          ],
+                        ),
                       )
                     : ListView(
                         padding: const EdgeInsets.all(NexusSizes.space2XL),
                         children: [
-                          if (futuras.isNotEmpty) ...[
-                            Text('Próximas',
-                                style: NexusText.label
-                                    .copyWith(color: context.nxt.inkSecondary)),
-                            const SizedBox(height: NexusSizes.spaceSM),
-                            ...futuras.map((t) => _TutoriaRow(tutoria: t)),
-                            const SizedBox(height: NexusSizes.spaceLG),
+                          if (gruposFuturos.isNotEmpty) ...[
+                            _SeccionHeader(label: 'Próximas'),
+                            const SizedBox(height: NexusSizes.spaceMD),
+                            for (final entry in gruposFuturos.entries) ...[
+                              _GrupoFecha(
+                                fecha: entry.key,
+                                slots: entry.value,
+                                prov: prov,
+                              ),
+                              const SizedBox(height: NexusSizes.spaceLG),
+                            ],
                           ],
-                          if (pasadas.isNotEmpty) ...[
-                            Text('Anteriores',
-                                style: NexusText.label
-                                    .copyWith(color: context.nxt.inkSecondary)),
-                            const SizedBox(height: NexusSizes.spaceSM),
-                            ...pasadas.map((t) => _TutoriaRow(tutoria: t)),
+                          if (gruposPasados.isNotEmpty) ...[
+                            _SeccionHeader(label: 'Anteriores'),
+                            const SizedBox(height: NexusSizes.spaceMD),
+                            for (final entry in gruposPasados.entries) ...[
+                              _GrupoFecha(
+                                fecha: entry.key,
+                                slots: entry.value,
+                                prov: prov,
+                              ),
+                              const SizedBox(height: NexusSizes.spaceLG),
+                            ],
                           ],
                         ],
                       ),
@@ -2501,86 +2519,182 @@ class _VistaTutoriasState extends State<_VistaTutorias> {
       );
     });
   }
-
-  void _mostrarDialogPlanificar(BuildContext context, TutoriaProvider prov) {
-    showDialog(
-      context: context,
-      builder: (ctx) => _DialogPlanificar(prov: prov),
-    );
-  }
-
-  Future<void> _enviarConvocatorias(
-      BuildContext context, TutoriaProvider prov, String fecha) async {
-    final n = await prov.enviarNotificaciones(fecha);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(n > 0
-            ? 'Convocatorias enviadas: $n'
-            : 'No se enviaron convocatorias'),
-        backgroundColor: n > 0 ? NexusColors.success : NexusColors.warning,
-      ));
-    }
-  }
 }
 
-class _TutoriaRow extends StatelessWidget {
-  final TutoriaModel tutoria;
-  const _TutoriaRow({required this.tutoria});
+class _SeccionHeader extends StatelessWidget {
+  final String label;
+  const _SeccionHeader({required this.label});
+  @override
+  Widget build(BuildContext context) => Text(
+        label,
+        style: NexusText.label.copyWith(
+            color: context.nxt.inkTertiary,
+            letterSpacing: 0.8),
+      );
+}
+
+class _GrupoFecha extends StatelessWidget {
+  final String fecha; // YYYY-MM-DD
+  final List<TutoriaModel> slots;
+  final TutoriaProvider prov;
+
+  const _GrupoFecha({
+    required this.fecha,
+    required this.slots,
+    required this.prov,
+  });
+
+  String _labelFecha() {
+    final d = DateTime.parse('$fecha 00:00:00');
+    return DateFormat('EEEE d \'de\' MMMM', 'es').format(d);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('EEE d MMM · HH:mm\'h\'', 'es');
-    final esFutura = tutoria.fechaHora.isAfter(DateTime.now());
+    final sinNotificar = slots.where((t) => !t.notificado).length;
     return Container(
-      margin: const EdgeInsets.only(bottom: NexusSizes.spaceSM),
-      padding: const EdgeInsets.symmetric(
-          horizontal: NexusSizes.spaceLG, vertical: NexusSizes.spaceMD),
       decoration: BoxDecoration(
         color: context.nxt.surface,
         border: Border.all(color: context.nxt.border, width: NexusSizes.borderWidth),
         borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.schedule_outlined,
-              size: 16,
-              color: esFutura ? NexusColors.primary : context.nxt.inkTertiary),
-          const SizedBox(width: NexusSizes.spaceMD),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Cabecera del grupo
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
+            child: Row(
               children: [
-                Text(fmt.format(tutoria.fechaHora),
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: NexusColors.primaryLight,
+                    borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+                  ),
+                  child: Text(
+                    _labelFecha(),
+                    style: const TextStyle(
                         fontSize: 13,
-                        color: context.nxt.ink)),
-                Text(tutoria.alumnoNombre,
-                    style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
+                        fontWeight: FontWeight.w600,
+                        color: NexusColors.primaryText),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('${slots.length} alumnos',
+                    style: TextStyle(fontSize: 12, color: context.nxt.inkTertiary)),
+                const Spacer(),
+                if (sinNotificar > 0)
+                  TextButton.icon(
+                    onPressed: () => _enviarConvocatorias(context),
+                    icon: const Icon(Icons.send_outlined, size: 14),
+                    label: Text('Notificar ($sinNotificar)'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: NexusColors.primary, padding: EdgeInsets.zero),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  color: context.nxt.inkTertiary,
+                  tooltip: 'Eliminar sesión',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: () => _confirmarEliminar(context),
+                ),
               ],
             ),
           ),
-          Text('${tutoria.duracionMinutos} min',
-              style: TextStyle(fontSize: 12, color: context.nxt.inkSecondary)),
-          const SizedBox(width: NexusSizes.spaceMD),
+          const Divider(height: 1),
+          // Slots
+          ...slots.map((t) => _SlotRow(tutoria: t)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _enviarConvocatorias(BuildContext context) async {
+    final n = await prov.enviarNotificaciones(fecha);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(n > 0 ? '$n convocatorias enviadas' : 'Sin convocatorias pendientes'),
+        backgroundColor: n > 0 ? NexusColors.success : NexusColors.warning,
+      ));
+    }
+  }
+
+  Future<void> _confirmarEliminar(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar sesión'),
+        content: Text('¿Eliminar todos los slots del ${_labelFecha()}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: NexusColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final exito = await prov.eliminarSesion(fecha);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(exito ? 'Sesión eliminada' : 'Error al eliminar'),
+        backgroundColor: exito ? NexusColors.success : NexusColors.danger,
+      ));
+    }
+  }
+}
+
+class _SlotRow extends StatelessWidget {
+  final TutoriaModel tutoria;
+  const _SlotRow({required this.tutoria});
+
+  @override
+  Widget build(BuildContext context) {
+    final hora = DateFormat('HH:mm').format(tutoria.fechaHora);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          // Hora en pill
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: tutoria.notificado
-                  ? NexusColors.successLight
-                  : NexusColors.warningLight,
+              color: context.nxt.surfaceAlt,
               borderRadius: BorderRadius.circular(NexusSizes.radiusFull),
+              border: Border.all(color: context.nxt.border),
             ),
-            child: Text(
-              tutoria.notificado ? 'Notificado' : 'Pendiente',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: tutoria.notificado
-                      ? NexusColors.successText
-                      : NexusColors.warningText),
+            child: Text(hora,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: context.nxt.ink)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(tutoria.alumnoNombre,
+                style: TextStyle(fontSize: 13, color: context.nxt.ink)),
+          ),
+          Text('${tutoria.duracionMinutos} min',
+              style: TextStyle(fontSize: 12, color: context.nxt.inkTertiary)),
+          const SizedBox(width: 12),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: tutoria.notificado ? NexusColors.success : NexusColors.warning,
             ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            tutoria.notificado ? 'Enviado' : 'Pendiente',
+            style: TextStyle(
+                fontSize: 11,
+                color: tutoria.notificado ? NexusColors.success : NexusColors.warning),
           ),
         ],
       ),
