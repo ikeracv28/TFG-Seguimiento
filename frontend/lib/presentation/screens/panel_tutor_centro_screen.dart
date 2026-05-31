@@ -377,6 +377,14 @@ class _Sidebar extends StatelessWidget {
             onTap: () => onChangeMode(_Mode.alumnos),
           ),
           const SizedBox(height: 4),
+          _NavBtn(
+            icon: Icons.calendar_month_outlined,
+            activeIcon: Icons.calendar_month,
+            tooltip: 'Tutorías',
+            isActive: mode == _Mode.tutorias,
+            onTap: () => onChangeMode(_Mode.tutorias),
+          ),
+          const SizedBox(height: 4),
           _NavBadgeBtn(
             icon: Icons.assignment_outlined,
             activeIcon: Icons.assignment,
@@ -403,14 +411,6 @@ class _Sidebar extends StatelessWidget {
             tooltip: 'Chat',
             isActive: mode == _Mode.chat,
             onTap: () => onChangeMode(_Mode.chat),
-          ),
-          const SizedBox(height: 4),
-          _NavBtn(
-            icon: Icons.event_outlined,
-            activeIcon: Icons.event,
-            tooltip: 'Tutorías',
-            isActive: mode == _Mode.tutorias,
-            onTap: () => onChangeMode(_Mode.tutorias),
           ),
           const Spacer(),
           // Perfil
@@ -2844,6 +2844,13 @@ class _MobileBottomNav extends StatelessWidget {
             onTap: () => onChangeMode(_Mode.alumnos),
           ),
           _BottomItem(
+            icon: Icons.calendar_month_outlined,
+            activeIcon: Icons.calendar_month,
+            label: 'Tutorías',
+            isActive: mode == _Mode.tutorias,
+            onTap: () => onChangeMode(_Mode.tutorias),
+          ),
+          _BottomItem(
             icon: Icons.assignment_outlined,
             activeIcon: Icons.assignment,
             label: 'Partes',
@@ -2865,13 +2872,6 @@ class _MobileBottomNav extends StatelessWidget {
             label: 'Chat',
             isActive: mode == _Mode.chat,
             onTap: () => onChangeMode(_Mode.chat),
-          ),
-          _BottomItem(
-            icon: Icons.event_outlined,
-            activeIcon: Icons.event,
-            label: 'Tutorías',
-            isActive: mode == _Mode.tutorias,
-            onTap: () => onChangeMode(_Mode.tutorias),
           ),
         ],
       ),
