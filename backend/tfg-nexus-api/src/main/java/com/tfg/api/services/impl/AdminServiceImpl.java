@@ -152,4 +152,20 @@ public class AdminServiceImpl implements AdminService {
                 "Usuario editado: " + usuario.getEmail() + " rol=" + request.rolNombre(), "admin");
         return editado;
     }
+
+    @Override
+    @Transactional
+    public void eliminarUsuario(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        if (Boolean.TRUE.equals(usuario.getActivo())) {
+            throw new BusinessRuleException(
+                    "No se puede eliminar un usuario activo. Desactívalo primero.");
+        }
+        String email = usuario.getEmail();
+        usuarioRepository.delete(usuario);
+        log.info("ADMIN_ELIMINAR_USUARIO id={} email={}", id, email);
+        auditService.registrar("USUARIOS", "ELIMINAR", id,
+                "Usuario eliminado permanentemente: " + email, "admin");
+    }
 }

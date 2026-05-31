@@ -120,6 +120,17 @@ class AdminProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  Future<bool> eliminarUsuario(int id) async {
+    try {
+      await _service.eliminarUsuario(id);
+      _usuarios = _usuarios.where((u) => u.id != id).toList();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> editarUsuario({
     required int id,
     required String dni,

@@ -1871,6 +1871,48 @@ class _UsuarioCard extends StatelessWidget {
             onPressed: () =>
                 context.read<AdminProvider>().toggleActivo(usuario.id),
           ),
+          if (!usuario.activo)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20),
+              tooltip: 'Eliminar usuario',
+              color: NexusColors.error,
+              onPressed: () => _confirmarEliminar(context, usuario),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmarEliminar(BuildContext context, UsuarioModel usuario) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar usuario'),
+        content: Text(
+          '¿Seguro que quieres eliminar a ${usuario.nombre} ${usuario.apellidos}?\n\n'
+          'Esta acción es irreversible y borrará todos sus datos asociados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: NexusColors.error),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await context.read<AdminProvider>().eliminarUsuario(usuario.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(ok
+                      ? 'Usuario eliminado correctamente'
+                      : 'Error al eliminar el usuario'),
+                  backgroundColor: ok ? NexusColors.success : NexusColors.error,
+                ));
+              }
+            },
+            child: const Text('Eliminar'),
+          ),
         ],
       ),
     );

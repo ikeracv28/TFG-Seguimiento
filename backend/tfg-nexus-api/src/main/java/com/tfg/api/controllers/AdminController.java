@@ -62,6 +62,13 @@ public class AdminController {
         return ResponseEntity.ok(adminService.editarUsuario(id, request));
     }
 
+    @DeleteMapping("/usuarios/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
+        adminService.eliminarUsuario(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/audit-logs")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<AuditLogResponse>> listarAuditLogs(

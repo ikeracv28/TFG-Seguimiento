@@ -14,4 +14,5 @@ public interface AdminService {
     List<UsuarioResponse> listarUsuarios();
     UsuarioResponse toggleActivo(Long id);
     UsuarioResponse editarUsuario(Long id, UpdateUsuarioRequest request);
+    void eliminarUsuario(Long id);
 }

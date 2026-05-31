@@ -48,6 +48,10 @@ class AdminService {
     return UsuarioModel.fromJson(response.data as Map<String, dynamic>);
   }
 
+  Future<void> eliminarUsuario(int id) async {
+    await _apiClient.dio.delete('/admin/usuarios/$id');
+  }
+
   Future<Map<String, dynamic>> crearUsuariosEnBatch(List<Map<String, dynamic>> usuarios) async {
     try {
       final response = await _apiClient.dio.post(
