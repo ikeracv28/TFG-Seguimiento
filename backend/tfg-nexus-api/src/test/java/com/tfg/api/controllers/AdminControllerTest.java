@@ -121,7 +121,7 @@ class AdminControllerTest {
         AuditLogResponse log = new AuditLogResponse(
                 1L, LocalDateTime.now(), "admin@test.com", "USUARIOS", "CREAR", 1L, "Test");
         Page<AuditLogResponse> page = new PageImpl<>(List.of(log));
-        when(auditService.listar(eq(null), any(Pageable.class))).thenReturn(page);
+        when(auditService.listar(eq(null), eq(null), eq(null), eq(null), eq(null), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/admin/audit-logs"))
                 .andExpect(status().isOk())
@@ -135,7 +135,7 @@ class AdminControllerTest {
         AuditLogResponse log = new AuditLogResponse(
                 2L, LocalDateTime.now(), "admin@test.com", "PRACTICAS", "EDITAR", 5L, "Editada");
         Page<AuditLogResponse> page = new PageImpl<>(List.of(log));
-        when(auditService.listar(eq("PRACTICAS"), any(Pageable.class))).thenReturn(page);
+        when(auditService.listar(eq("PRACTICAS"), eq(null), eq(null), eq(null), eq(null), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/admin/audit-logs").param("modulo", "PRACTICAS"))
                 .andExpect(status().isOk())
