@@ -1358,6 +1358,8 @@ class _AllPartesPanelState extends State<_AllPartesPanel> {
 
     final ultimo = todos.isNotEmpty ? todos.first : null;
     final ultimoPractica = ultimo != null ? provider.practicaDe(ultimo.practicaId) : null;
+    final incAbiertas = provider.todasIncidencias.where((i) => i.estaAbierta).length;
+    final totalAlumnos = provider.practicas.length;
 
     return RefreshIndicator(
       onRefresh: () => context.read<TutorCentroProvider>().cargar(),
