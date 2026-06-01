@@ -77,7 +77,7 @@ public class AdminController {
             @RequestParam(required = false) String accion,
             @RequestParam(required = false) LocalDate fechaDesde,
             @RequestParam(required = false) LocalDate fechaHasta,
-            @PageableDefault(size = 50, sort = "fecha") Pageable pageable) {
+            @PageableDefault(size = 50) Pageable pageable) {
         return ResponseEntity.ok(auditService.listar(modulo, email, accion, fechaDesde, fechaHasta, pageable));
     }
 }
