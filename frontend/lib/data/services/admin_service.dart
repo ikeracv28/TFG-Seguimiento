@@ -255,7 +255,7 @@ class AdminService {
     int page = 0,
     int size = 50,
   }) async {
-    final params = <String, dynamic>{'page': page, 'size': size, 'sort': 'fecha,desc'};
+    final params = <String, dynamic>{'page': page, 'size': size};
     if (modulo != null) params['modulo'] = modulo;
     if (email != null && email.isNotEmpty) params['email'] = email;
     if (accion != null && accion.isNotEmpty) params['accion'] = accion;
