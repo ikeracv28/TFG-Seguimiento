@@ -1369,55 +1369,56 @@ class _AllPartesPanelState extends State<_AllPartesPanel> {
           children: [
             // Header + buscador
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Validación de Partes',
-                              style: NexusText.heading2.copyWith(letterSpacing: -0.3)),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${pendientes.length} de ${todos.length} ${todos.length == 1 ? 'parte pendiente' : 'partes pendientes'}',
-                            style: NexusText.body.copyWith(color: context.nxt.inkSecondary),
-                          ),
-                        ],
+                          style: NexusText.heading2.copyWith(letterSpacing: -0.3)),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${pendientes.length} de ${todos.length} partes pendientes',
+                        style: NexusText.body.copyWith(color: context.nxt.inkSecondary),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    SizedBox(
-                      width: 260,
-                      child: TextField(
-                        controller: _searchCtrl,
-                        style: NexusText.small,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          hintText: 'Filtrar por alumno o empresa…',
-                          hintStyle: NexusText.small.copyWith(color: context.nxt.inkTertiary),
-                          prefixIcon: Icon(Icons.search, size: 16, color: context.nxt.inkTertiary),
-                          suffixIcon: _query.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: () { _searchCtrl.clear(); setState(() => _query = ''); },
-                                  child: Icon(Icons.close, size: 14, color: context.nxt.inkTertiary),
-                                )
-                              : null,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                          filled: true,
-                          fillColor: context.nxt.surfaceAlt,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
-                            borderSide: BorderSide(color: context.nxt.border),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
-                            borderSide: BorderSide(color: context.nxt.border),
-                          ),
-                        ),
-                        onChanged: (v) => setState(() => _query = v),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 260,
+                  child: TextField(
+                    controller: _searchCtrl,
+                    style: NexusText.small,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'Filtrar por alumno o empresa...',
+                      hintStyle: NexusText.small.copyWith(color: context.nxt.inkTertiary),
+                      prefixIcon: Icon(Icons.search, size: 16, color: context.nxt.inkTertiary),
+                      suffixIcon: _query.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () { _searchCtrl.clear(); setState(() => _query = ''); },
+                              child: Icon(Icons.close, size: 14, color: context.nxt.inkTertiary),
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      filled: true,
+                      fillColor: context.nxt.surfaceAlt,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                        borderSide: BorderSide(color: context.nxt.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                        borderSide: BorderSide(color: context.nxt.border),
+                      ),
+                    ),
+                    onChanged: (v) => setState(() => _query = v),
+                  ),
+                ),
+              ],
+            ),
                 const SizedBox(height: NexusSizes.space2XL),
                 // Tabla
                 Container(
