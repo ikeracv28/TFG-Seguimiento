@@ -1313,17 +1313,41 @@ class _DetailPanel extends StatelessWidget {
 
 // ── All partes panel ───────────────────────────────────────────────────────────
 
-class _AllPartesPanel extends StatelessWidget {
+class _AllPartesPanel extends StatefulWidget {
   final TutorCentroProvider provider;
   const _AllPartesPanel({required this.provider});
+  @override
+  State<_AllPartesPanel> createState() => _AllPartesPanelState();
+}
+
+class _AllPartesPanelState extends State<_AllPartesPanel> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = widget.provider;
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator(color: NexusColors.primary));
     }
-    final pendientes = provider.todosPendientesCentro;
-    if (pendientes.isEmpty) {
+    final todos = provider.todosPendientesCentro;
+    final pendientes = _query.isEmpty
+        ? todos
+        : todos.where((s) {
+            final practica = provider.practicaDe(s.practicaId);
+            final nombre = normalizarTexto(practica?.alumnoNombre ?? '');
+            final empresa = normalizarTexto(practica?.empresaNombre ?? '');
+            final q = normalizarTexto(_query);
+            return nombre.contains(q) || empresa.contains(q);
+          }).toList();
+
+    if (todos.isEmpty) {
       return _EmptyState(
         icon: Icons.check_circle_outline,
         mensaje: 'Sin partes pendientes',
@@ -1331,9 +1355,8 @@ class _AllPartesPanel extends StatelessWidget {
         iconColor: Color.fromRGBO(59, 109, 17, 0.5),
       );
     }
-    final incAbiertas = provider.todasIncidencias.where((i) => i.estaAbierta).length;
-    final totalAlumnos = provider.practicas.length;
-    final ultimo = pendientes.isNotEmpty ? pendientes.first : null;
+
+    final ultimo = todos.isNotEmpty ? todos.first : null;
     final ultimoPractica = ultimo != null ? provider.practicaDe(ultimo.practicaId) : null;
 
     return RefreshIndicator(
@@ -1344,7 +1367,7 @@ class _AllPartesPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Header + buscador
             Row(
               children: [
                 Expanded(
@@ -1355,10 +1378,42 @@ class _AllPartesPanel extends StatelessWidget {
                               style: NexusText.heading2.copyWith(letterSpacing: -0.3)),
                           const SizedBox(height: 2),
                           Text(
-                            'Tienes ${pendientes.length} ${pendientes.length == 1 ? 'parte pendiente' : 'partes pendientes'} de validación hoy.',
+                            '${pendientes.length} de ${todos.length} ${todos.length == 1 ? 'parte pendiente' : 'partes pendientes'}',
                             style: NexusText.body.copyWith(color: context.nxt.inkSecondary),
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 260,
+                      child: TextField(
+                        controller: _searchCtrl,
+                        style: NexusText.small,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: 'Filtrar por alumno o empresa…',
+                          hintStyle: NexusText.small.copyWith(color: context.nxt.inkTertiary),
+                          prefixIcon: Icon(Icons.search, size: 16, color: context.nxt.inkTertiary),
+                          suffixIcon: _query.isNotEmpty
+                              ? GestureDetector(
+                                  onTap: () { _searchCtrl.clear(); setState(() => _query = ''); },
+                                  child: Icon(Icons.close, size: 14, color: context.nxt.inkTertiary),
+                                )
+                              : null,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                          filled: true,
+                          fillColor: context.nxt.surfaceAlt,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                            borderSide: BorderSide(color: context.nxt.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(NexusSizes.radiusMD),
+                            borderSide: BorderSide(color: context.nxt.border),
+                          ),
+                        ),
+                        onChanged: (v) => setState(() => _query = v),
                       ),
                     ),
                   ],

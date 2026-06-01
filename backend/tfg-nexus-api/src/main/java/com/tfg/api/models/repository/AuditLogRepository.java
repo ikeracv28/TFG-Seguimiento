@@ -11,13 +11,18 @@ import java.time.LocalDateTime;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
-    @Query("SELECT a FROM AuditLog a WHERE " +
+    @Query(value = "SELECT a FROM AuditLog a WHERE " +
             "(:modulo IS NULL OR a.modulo = :modulo) AND " +
             "(:email IS NULL OR LOWER(a.usuarioEmail) LIKE LOWER(CONCAT('%', :email, '%'))) AND " +
             "(:accion IS NULL OR LOWER(a.accion) LIKE LOWER(CONCAT('%', :accion, '%'))) AND " +
             "(:fechaDesde IS NULL OR a.fecha >= :fechaDesde) AND " +
-            "(:fechaHasta IS NULL OR a.fecha <= :fechaHasta) " +
-            "ORDER BY a.fecha DESC")
+            "(:fechaHasta IS NULL OR a.fecha <= :fechaHasta)",
+           countQuery = "SELECT COUNT(a) FROM AuditLog a WHERE " +
+            "(:modulo IS NULL OR a.modulo = :modulo) AND " +
+            "(:email IS NULL OR LOWER(a.usuarioEmail) LIKE LOWER(CONCAT('%', :email, '%'))) AND " +
+            "(:accion IS NULL OR LOWER(a.accion) LIKE LOWER(CONCAT('%', :accion, '%'))) AND " +
+            "(:fechaDesde IS NULL OR a.fecha >= :fechaDesde) AND " +
+            "(:fechaHasta IS NULL OR a.fecha <= :fechaHasta)")
     Page<AuditLog> filtrar(
             @Param("modulo") String modulo,
             @Param("email") String email,
